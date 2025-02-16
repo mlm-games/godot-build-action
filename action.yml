@@ -22,12 +22,18 @@ inputs:
   DEBUG_MODE:
     description: 'Whether or not to use `--export-debug`'
     default: false
-  # BUTLER_UPLOAD:
-  #   description: 'Upload to itch.io using butler'
-  #   default: false
-  # BUTLER_UPLOAD_CHANNEL:
-  #   description: 'Channel to upload to itch.io using butler'
-  #   default: "windows"
+  BUTLER_UPLOAD:
+    description: 'Upload to itch.io using butler'
+    default: false
+  BUTLER_UPLOAD_CHANNEL:
+    description: 'Channel to upload to itch.io using butler'
+    default: "windows"
+  BUTLER_CREDENTIALS:
+    description: 'butler credentials'
+    default: "windows"
+  ITCH_USER_SLASH_GAME:
+    description: 'Your username and gamename in the format of "user/game"'
+    default: ''
     
 
 outputs:
@@ -96,7 +102,7 @@ runs:
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
         
         # Accept licenses and install required packages
-        yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "build-tools;34.0.0" "platforms;android-34" "cmdline-tools;latest" "cmake;3.10.2.4988404" "ndk;23.2.8568313"
+        sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses "platform-tools" "build-tools;34.0.0" "platforms;android-34" "cmdline-tools;latest" "cmake;3.10.2.4988404" "ndk;23.2.8568313"
         
         # Export environment variables
         #echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
@@ -141,28 +147,28 @@ runs:
         ~/godot-binary/godot --headless --${mode} "${{ inputs.EXPORT_PRESET_NAME }}"
         echo "Build Done"
 
-    # - name: Upload using butler
-    #   if: ${{ inputs.BUTLER_UPLOAD == 'true' }}
-    #   shell: bash
-    #   run: |
-    #     curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default && unzip butler.zip && cp butler /usr/bin && chmod +x /usr/bin/butler
+    - name: Upload using butler
+      if: ${{ inputs.BUTLER_UPLOAD == 'true' }}
+      shell: bash
+      run: |
+        curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default && unzip butler.zip && cp butler /usr/bin && chmod +x /usr/bin/butler
     
-    #     set -e
+        set -e
     
-    #     export BUTLER_API_KEY=${{ secrets.BUTLER_CREDENTIALS }}
+        export BUTLER_API_KEY=${{ inputs.BUTLER_CREDENTIALS }}
         
-    #     versionArgument=""
+        versionArgument=""
         
-    #     if [ "$VERSION" != "" ]
-    #     then
-    #         versionArgument="--userversion ${VERSION}"
-    #     elif [ "$VERSION_FILE" != "" ]
-    #     then
-    #         versionArgument="--userversion-file ${VERSION_FILE}"
-    #     fi
+        if [ "$VERSION" != "" ]
+        then
+            versionArgument="--userversion ${VERSION}"
+        elif [ "$VERSION_FILE" != "" ]
+        then
+            versionArgument="--userversion-file ${VERSION_FILE}"
+        fi
         
-    #     echo "butler push \"$PACKAGE\" ${{ secrets.ITCH_USER }}/${{ secrets.ITCH_GAME }}:${{ inputs.BUTLER_UPLOAD_CHANNEL }} ${versionArgument}"
-    #     butler push "$PACKAGE" ${{ secrets.ITCH_USER }}/${{ secrets.ITCH_GAME }}:${{ inputs.BUTLER_UPLOAD_CHANNEL }} ${versionArgument}
+        echo "butler push \"$PACKAGE\" ${{ inputs.ITCH_USER_SLASH_GAME }}:${{ inputs.BUTLER_UPLOAD_CHANNEL }} ${versionArgument}"
+        butler push "$PACKAGE" ${{ inputs.ITCH_USER_SLASH_GAME }}:${{ inputs.BUTLER_UPLOAD_CHANNEL }} ${versionArgument}
               
 
 
