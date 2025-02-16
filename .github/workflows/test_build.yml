@@ -41,4 +41,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
-          path: ${{ github.workspace }}/game/builds/
+          path: ${{ github.workspace }}/test_build_game/builds/
