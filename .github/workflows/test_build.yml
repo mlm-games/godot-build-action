@@ -37,8 +37,16 @@ jobs:
           ls ~/.local/share/godot
 
       
+      - name: Set artifact name
+        id: artifact-name
+        shell: bash
+        run: |
+          PLATFORM="${{ matrix.platform }}"
+          SAFE_NAME="${PLATFORM//[^a-zA-Z0-9_]/_}"
+          echo "name=${SAFE_NAME}" >> $GITHUB_OUTPUT
+      
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ replace(matrix.platform, '/', '_') }}-build
+          name: ${{ steps.artifact-name.outputs.name }}-build
           path: ${{ github.workspace }}/test_build_game/builds/
