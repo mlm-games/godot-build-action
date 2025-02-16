@@ -29,6 +29,7 @@ jobs:
           DEBUG_MODE: true
 
       - name: Debug printing
+        if: always()
         run: |
           ls ~/.local/share/godot/*/*/*
 
