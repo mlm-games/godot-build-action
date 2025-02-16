@@ -1,0 +1,34 @@
+name: Build Game
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [windows, linux, mac]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone test game
+        run: |
+          git clone https://codeberg.org/mlmstudios/just-keep-chasing.git --depth=1 test_build_game
+      
+      - name: Build
+        uses: mlm-games/build-godot-action@v1
+        with:
+          BINARY_NAME: my-game
+          EXPORT_PRESET_NAME: ${{ matrix.platform }}
+          PROJECT_DIR: test_build_game  
+          DEBUG_MODE: true
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.platform }}-build
+          path: ${{ github.workspace }}/game/builds/
