@@ -20,7 +20,7 @@ jobs:
           git clone https://codeberg.org/mlmstudios/just-keep-chasing.git --depth=1 test_build_game
       
       - name: Build
-        uses: mlm-games/godot-build-action@v1
+        uses: mlm-games/godot-build-action@main #Idk why v1 doesnt work...
         with:
           BINARY_NAME: my-game
           EXPORT_PRESET_NAME: ${{ matrix.platform }}
