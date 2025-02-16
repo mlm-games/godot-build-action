@@ -44,11 +44,13 @@ runs:
         fi
 
     - name: Create directories
+      shell: bash
       run: |
         mkdir -p ~/.local/share/godot/export_templates/${{ steps.version.outputs.GODOT_VERSION }}.stable
         mkdir -p ~/godot-binary
 
     - name: Download Godot
+      shell: bash
       run: |
         GODOT_BASENAME="Godot_v${{ steps.version.outputs.GODOT_VERSION }}-stable_linux.x86_64"
         wget -q "https://github.com/godotengine/godot/releases/download/${{ steps.version.outputs.GODOT_VERSION }}-stable/${GODOT_BASENAME}.zip" -O ~/godot-binary/godot.zip
@@ -57,6 +59,7 @@ runs:
         mv ~/godot-binary/${GODOT_BASENAME} ~/godot-binary/godot
 
     - name: Download and install export templates
+      shell: bash
       run: |
         TEMPLATES_BASENAME="Godot_v${{ steps.version.outputs.GODOT_VERSION }}-stable_export_templates"
         wget -q "https://github.com/godotengine/godot/releases/download/${{ steps.version.outputs.GODOT_VERSION }}-stable/${TEMPLATES_BASENAME}.tpz" -O ~/templates.tpz
