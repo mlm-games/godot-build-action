@@ -28,7 +28,7 @@ jobs:
           DEBUG_MODE: true
           
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-build
           path: ${{ github.workspace }}/game/builds/
