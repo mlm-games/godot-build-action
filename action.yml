@@ -1,0 +1,44 @@
+NAME: "Build Godot Action"
+description: "Build a Godot project for multiple platforms"
+author: "mlm-games"
+
+inputs:
+  BINARY_NAME:
+    description: 'Name of the exported binary'
+    required: true
+  EXPORT_PRESET_NAME:
+    description: 'Name of the preset in `export_presets.cfg` to use'
+    required: true
+  GODOT_VER:
+    description: 'Godot version to use, uses latest release by default. (e.g. 4.2.1)'
+    required: false
+  PACKAGE:
+    description: 'Set true to output an artifact zip file'
+    default: false
+  PROJECT_DIR:
+    description: 'Location of Godot project in repository'
+    default: "."
+  DEBUG_MODE:
+    description: 'Whether or not to use `--export-debug`'
+    default: false
+
+outputs:
+  build:
+    description: 'Path to the build output directory'
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: ${{ github.action_path }}/entrypoint.sh
+      env:
+        INPUT_NAME: ${{ inputs.BINARY_NAME }}
+        INPUT_PRESET: ${{ inputs.EXPORT_PRESET_NAME }}
+        INPUT_GODOT_VERSION: ${{ inputs.GODOT_VER }}
+        INPUT_PACKAGE: ${{ inputs.PACKAGE }}
+        INPUT_PROJECT_DIR: ${{ inputs.PROJECT_DIR }}
+        INPUT_DEBUG_MODE: ${{ inputs.DEBUG_MODE }}
+
+branding:
+  icon: loader
+  color: blue
