@@ -82,6 +82,9 @@ jobs:
 | `GODOT_VER` | Specific Godot version to use | No | Latest recommended version |
 | `PROJECT_DIR` | Location of Godot project in repository | No | "." |
 | `DEBUG_MODE` | Whether to use `--export-debug` | No | false |
+| `BUTLER_UPLOAD` | Whether to upload to itch.io | No | false |
+| `BUTLER_UPLOAD_NAME` | The platform to upload for in itch.io | No | 'windows' |
+
 
 ## Outputs
 
@@ -127,4 +130,4 @@ This project is licensed under the GPL 3.0 License - see the LICENSE file for de
 
 ## Credits
 
-- [yeslayla](github.com/yeslayla) for the initial reference yml
+- [yeslayla](https://github.com/yeslayla) for the initial reference yml
