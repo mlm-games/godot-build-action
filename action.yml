@@ -102,7 +102,7 @@ runs:
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
         
         # Accept licenses and install required packages
-        sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses --install "platform-tools" "build-tools;34.0.0" "platforms;android-34" "cmdline-tools;latest" "cmake;3.10.2.4988404" "ndk;23.2.8568313"
+        sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses "yes" --install "platform-tools" "build-tools;34.0.0" "platforms;android-34" "cmdline-tools;latest" "cmake;3.10.2.4988404" "ndk;23.2.8568313"
         
         # Export environment variables
         #echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
