@@ -78,12 +78,6 @@ runs:
           mode="export-debug"
         fi
 
-        # Export project
-        echo "Building ${{ inputs.BINARY_NAME }} for ${{ inputs.EXPORT_PRESET_NAME }}"
-        cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
-        ~/godot-binary/godot --headless --${mode} "${{ inputs.EXPORT_PRESET_NAME }}"
-        echo "Build Done"
-
         # Set build path
         if [ "${{ inputs.PROJECT_DIR }}" != "" ]; then
           BUILD_PATH="${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}/builds/"
@@ -91,6 +85,15 @@ runs:
           BUILD_PATH="${GITHUB_WORKSPACE}/builds/"
         fi
         echo "build=${BUILD_PATH}" >> $GITHUB_OUTPUT
+
+
+         # Export project
+        echo "Building ${{ inputs.BINARY_NAME }} for ${{ inputs.EXPORT_PRESET_NAME }}"
+        cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
+        mkdir -p "${GITHUB_WORKSPACE}/builds/"
+        ~/godot-binary/godot --headless --${mode} "${{ inputs.EXPORT_PRESET_NAME }}"
+        echo "Build Done"
+
 
 branding:
   icon: loader
