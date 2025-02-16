@@ -143,6 +143,7 @@ runs:
 
     - name: Upload using butler
       if: ${{ inputs.BUTLER_UPLOAD == 'true' }}
+      shell: bash
       run: |
         curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default && unzip butler.zip && cp butler /usr/bin && chmod +x /usr/bin/butler
     
