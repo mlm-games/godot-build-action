@@ -90,9 +90,8 @@ runs:
          # Export project
         echo "Building ${{ inputs.BINARY_NAME }} for ${{ inputs.EXPORT_PRESET_NAME }}"
         cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
-        mkdir builds/
-        mkdir osx/
-        mkdir web/
+        mkdir -p builds/osx/
+        mkdir builds/web/
         ~/godot-binary/godot --headless --${mode} "${{ inputs.EXPORT_PRESET_NAME }}"
         echo "Build Done"
 
