@@ -23,11 +23,16 @@ jobs:
       - name: Build
         uses: mlm-games/godot-build-action@main #Idk why v1 doesnt work...
         with:
-          BINARY_NAME: my-game
+          BINARY_NAME: test-game
           EXPORT_PRESET_NAME: ${{ matrix.platform }}
           PROJECT_DIR: test_build_game  
           DEBUG_MODE: true
-          
+
+      - name: Debug printing
+        run: |
+          ls ~/.local/share/godot/*/*/*
+
+      
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
