@@ -25,6 +25,10 @@ inputs:
   BUTLER_UPLOAD:
     description: 'Upload to itch.io using butler'
     default: false
+  BUTLER_UPLOAD_CHANNEL:
+    description: 'Channel to upload to itch.io using butler'
+    default: "windows"
+    
 
 outputs:
   build:
@@ -98,28 +102,28 @@ runs:
         ~/godot-binary/godot --headless --${mode} "${{ inputs.EXPORT_PRESET_NAME }}"
         echo "Build Done"
 
-      - name: Upload using butler #Fully based on yeslayla's repository (check the credits section of readme for more info)
-        if: ${{ inputs.BUTLER_UPLOAD }} == 'true'
-        run: |
-          curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default && unzip butler.zip && cp butler /usr/bin && chmod +x /usr/bin/butler
-
-          set -e
-
-          export BUTLER_API_KEY=$BUTLER_CREDENTIALS
-          
-          versionArgument=""
-          
-          if [ "$VERSION" != "" ]
-          then
-              versionArgument="--userversion ${VERSION}"
-          elif [ "$VERSION_FILE" != "" ]
-          then
-              versionArgument="--userversion-file ${VERSION_FILE}"
-          fi
-          
-          echo "butler push \"$PACKAGE\" $ITCH_USER/$ITCH_GAME:$CHANNEL ${versionArgument}"
-          butler push "$PACKAGE" $ITCH_USER/$ITCH_GAME:$CHANNEL ${versionArgument}
-          
+    - name: Upload using butler
+      if: ${{ inputs.BUTLER_UPLOAD == 'true' }}
+      run: |
+        curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default && unzip butler.zip && cp butler /usr/bin && chmod +x /usr/bin/butler
+    
+        set -e
+    
+        export BUTLER_API_KEY=${{ secrets.BUTLER_CREDENTIALS }}
+        
+        versionArgument=""
+        
+        if [ "$VERSION" != "" ]
+        then
+            versionArgument="--userversion ${VERSION}"
+        elif [ "$VERSION_FILE" != "" ]
+        then
+            versionArgument="--userversion-file ${VERSION_FILE}"
+        fi
+        
+        echo "butler push \"$PACKAGE\" ${{ secrets.ITCH_USER }}/${{ secrets.ITCH_GAME }}:${{ inputs.BUTLER_UPLOAD_CHANNEL }} ${versionArgument}"
+        butler push "$PACKAGE" ${{ secrets.ITCH_USER }}/${{ secrets.ITCH_GAME }}:${{ inputs.BUTLER_UPLOAD_CHANNEL }} ${versionArgument}
+              
 
 
 branding:
