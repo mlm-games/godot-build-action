@@ -1,4 +1,4 @@
-NAME: "Build Godot Action"
+name: "Build Godot Action"
 description: "Build a Godot project for multiple platforms"
 author: "mlm-games"
 
@@ -10,8 +10,9 @@ inputs:
     description: 'Name of the preset in `export_presets.cfg` to use'
     required: true
   GODOT_VER:
-    description: 'Godot version to use, uses latest release by default. (e.g. 4.2.1)'
+    description: 'Godot version to use, uses latest Godot 4.x release by default. (e.g. 4.2.1)'
     required: false
+    default: ''
   PACKAGE:
     description: 'Set true to output an artifact zip file'
     default: false
@@ -25,19 +26,69 @@ inputs:
 outputs:
   build:
     description: 'Path to the build output directory'
+    value: ${{ steps.export.outputs.build }}
 
 runs:
   using: "composite"
   steps:
-    - shell: bash
-      run: ${{ github.action_path }}/entrypoint.sh
-      env:
-        INPUT_NAME: ${{ inputs.BINARY_NAME }}
-        INPUT_PRESET: ${{ inputs.EXPORT_PRESET_NAME }}
-        INPUT_GODOT_VERSION: ${{ inputs.GODOT_VER }}
-        INPUT_PACKAGE: ${{ inputs.PACKAGE }}
-        INPUT_PROJECT_DIR: ${{ inputs.PROJECT_DIR }}
-        INPUT_DEBUG_MODE: ${{ inputs.DEBUG_MODE }}
+    - name: Get Godot version
+      id: version
+      shell: bash
+      run: |
+        if [ -z "${{ inputs.GODOT_VER }}" ]; then
+          # Get latest Godot 4.x release version from GitHub API
+          LATEST_VER=$(curl -s https://api.github.com/repos/godotengine/godot/releases | grep -oP '"tag_name": "\K[^"]+' | grep '^4\.' | head -n 1 | sed 's/-stable//')
+          echo "GODOT_VERSION=${LATEST_VER}" >> $GITHUB_OUTPUT
+        else
+          echo "GODOT_VERSION=${{ inputs.GODOT_VER }}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create directories
+      shell: bash
+      run: |
+        mkdir -p ~/.local/share/godot/export_templates/${{ steps.version.outputs.GODOT_VERSION }}.stable
+        mkdir -p ~/godot-binary
+
+    - name: Download Godot
+      shell: bash
+      run: |
+        GODOT_BASENAME="Godot_v${{ steps.version.outputs.GODOT_VERSION }}-stable_linux.x86_64"
+        wget -q "https://github.com/godotengine/godot/releases/download/${{ steps.version.outputs.GODOT_VERSION }}-stable/${GODOT_BASENAME}.zip" -O ~/godot-binary/godot.zip
+        unzip -q ~/godot-binary/godot.zip -d ~/godot-binary
+        chmod +x ~/godot-binary/${GODOT_BASENAME}
+        mv ~/godot-binary/${GODOT_BASENAME} ~/godot-binary/godot
+
+    - name: Download and install export templates
+      shell: bash
+      run: |
+        TEMPLATES_BASENAME="Godot_v${{ steps.version.outputs.GODOT_VERSION }}-stable_export_templates"
+        wget -q "https://github.com/godotengine/godot/releases/download/${{ steps.version.outputs.GODOT_VERSION }}-stable/${TEMPLATES_BASENAME}.tpz" -O ~/templates.tpz
+        unzip -q ~/templates.tpz -d ~/.local/share/godot/export_templates/${{ steps.version.outputs.GODOT_VERSION }}.stable
+
+    - name: Export project
+      id: export
+      shell: bash
+      run: |
+        # Set export mode
+        mode="export-release"
+        if [ "${{ inputs.DEBUG_MODE }}" = "true" ]; then
+          echo "Exporting in debug mode!"
+          mode="export-debug"
+        fi
+
+        # Export project
+        echo "Building ${{ inputs.BINARY_NAME }} for ${{ inputs.EXPORT_PRESET_NAME }}"
+        cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
+        ~/godot-binary/godot --headless --${mode} "${{ inputs.EXPORT_PRESET_NAME }}"
+        echo "Build Done"
+
+        # Set build path
+        if [ "${{ inputs.PROJECT_DIR }}" != "" ]; then
+          BUILD_PATH="${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}/builds/"
+        else
+          BUILD_PATH="${GITHUB_WORKSPACE}/builds/"
+        fi
+        echo "build=${BUILD_PATH}" >> $GITHUB_OUTPUT
 
 branding:
   icon: loader
