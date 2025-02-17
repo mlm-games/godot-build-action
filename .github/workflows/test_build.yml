@@ -18,7 +18,7 @@ jobs:
 
       - name: Clone test game
         run: |
-          git clone https://codeberg.org/mlmstudios/just-keep-chasing.git --depth=1 test_build_game
+          git clone https://github.com/mlm-games/asteroids-revenge --depth=1 test_build_game
       
       - name: Build
         uses: mlm-games/godot-build-action@main #Idk why v1 doesnt work...
