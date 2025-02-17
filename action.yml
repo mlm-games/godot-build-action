@@ -99,7 +99,7 @@ runs:
       shell: bash
       run: |
         TEMPLATES_BASENAME="Godot_v${{ steps.version.outputs.GODOT_VERSION }}_export_templates"
-        wget -q "https://github.com/godotengine/godot/releases/download/${{ steps.version.outputs.GODOT_VERSION }}/${TEMPLATES_BASENAME}.tpz" -O ~/templates.tpz
+        wget -q "https://github.com/godotengine/godot-builds/releases/download/${{ steps.version.outputs.GODOT_VERSION }}/${TEMPLATES_BASENAME}.tpz" -O ~/templates.tpz
         unzip -q ~/templates.tpz -d ~/.local/share/godot/export_templates/temp
         mkdir -p ~/.local/share/godot/export_templates/$(echo ${{ steps.version.outputs.GODOT_VERSION }} | sed 's/[^a-zA-Z0-9_]/./g')
         mv ~/.local/share/godot/export_templates/temp/templates/* ~/.local/share/godot/export_templates/$(echo ${{ steps.version.outputs.GODOT_VERSION }} | sed 's/[^a-zA-Z0-9_]/./g')/
