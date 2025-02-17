@@ -22,6 +22,9 @@ inputs:
   DEBUG_MODE:
     description: 'Whether or not to use `--export-debug`'
     default: false
+  GODOT_PREVIEW_BUILDS:
+    description: 'Use godot preview builds'
+    default: false
   BUTLER_UPLOAD:
     description: 'Upload to itch.io using butler'
     default: false
@@ -61,9 +64,15 @@ runs:
       shell: bash
       run: |
         if [ -z "${{ inputs.GODOT_VER }}" ]; then
-          # Get latest Godot 4.x release version from GitHub API
-          LATEST_VER=$(curl -s https://api.github.com/repos/godotengine/godot/releases | grep -oP '"tag_name": "\K[^"]+' | grep '^4\.' | head -n 1 | sed 's/-stable//')
-          echo "GODOT_VERSION=${LATEST_VER}" >> $GITHUB_OUTPUT
+          if [ "${{ inputs.GODOT_PREVIEW_BUILDS }}" == "true" ]; then
+            # Get latest Godot 4.x release version from GitHub API
+            LATEST_VER=$(curl -s https://api.github.com/repos/godotengine/godot/releases | grep -oP '"tag_name": "\K[^"]+' | grep '^4\.' | head -n 1 | sed 's/-stable//')
+            echo "GODOT_VERSION=${LATEST_VER}" >> $GITHUB_OUTPUT
+          else
+            # Get latest Godot 4.x preview version from GitHub API
+            LATEST_VER=$(curl -s https://api.github.com/repos/godotengine/godot-builds/releases | grep -oP '"tag_name": "\K[^"]+' | grep '^4\.' | head -n 1 | sed 's/-stable//')
+            echo "GODOT_VERSION=${LATEST_VER}" >> $GITHUB_OUTPUT
+          fi
         else
           echo "GODOT_VERSION=${{ inputs.GODOT_VER }}" >> $GITHUB_OUTPUT
         fi
@@ -78,7 +87,11 @@ runs:
       shell: bash
       run: |
         GODOT_BASENAME="Godot_v${{ steps.version.outputs.GODOT_VERSION }}-stable_linux.x86_64"
-        wget -q "https://github.com/godotengine/godot/releases/download/${{ steps.version.outputs.GODOT_VERSION }}-stable/${GODOT_BASENAME}.zip" -O ~/godot-binary/godot.zip
+        if [ "${{ inputs.GODOT_PREVIEW_BUILDS }}" == "true" ]; then
+            wget -q "https://github.com/godotengine/godot-builds/releases/download/${{ steps.version.outputs.GODOT_VERSION }}-stable/${GODOT_BASENAME}.zip" -O ~/godot-binary/godot.zip
+        else
+            wget -q "https://github.com/godotengine/godot/releases/download/${{ steps.version.outputs.GODOT_VERSION }}-stable/${GODOT_BASENAME}.zip" -O ~/godot-binary/godot.zip
+        fi
         unzip -q ~/godot-binary/godot.zip -d ~/godot-binary
         chmod +x ~/godot-binary/${GODOT_BASENAME}
         mv ~/godot-binary/${GODOT_BASENAME} ~/godot-binary/godot
