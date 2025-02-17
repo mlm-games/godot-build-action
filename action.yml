@@ -193,14 +193,20 @@ runs:
                 # Determine the channel based on the file path/name
                 channel=""
                 case "$path" in
+                    *"web"*|*"html")
+                        channel="web"
+                        # Special handling for web builds
+                        web_dir=$(dirname "$path")
+                        cd "$web_dir"
+                        zip -r web.zip *
+                        mv web.zip ../
+                        cd ..
+                        upload_path="web.zip"
+                        ;;
                     *"windows"*|*".exe") channel="windows" ;;
-                    *"web"*|*"html") channel="web" ;;
                     *"linux"*"x86_64") channel="linux" ;;
                     *"linux"*"aarch64"*|*"arm64") channel="linux-arm64" ;;
-                    *"macOS"*|*"osx"*) channel="osx" ;;
-                    *"android"*"arm32"*) channel="android-arm32" ;;
-                    *"android"*"arm64"*) channel="android-arm64" ;;
-                    *"android"*"x86_64"*) channel="android-x86_64" ;;
+                    *"android"*"apk") channel="android" ;;
                     *) echo "Unknown platform for $path" ; continue ;;
                 esac
     
