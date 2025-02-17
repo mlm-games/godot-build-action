@@ -3,9 +3,9 @@ description: "Build a Godot project for multiple platforms"
 author: "mlm-games"
 
 inputs:
-  BINARY_NAME:
-    description: 'Name of the exported binary'
-    required: true
+  # BINARY_NAME:
+  #   description: 'Name of the exported binary'
+  #   required: true
   EXPORT_PRESET_NAME:
     description: 'Name of the preset in `export_presets.cfg` to use'
     required: true
@@ -163,7 +163,7 @@ runs:
 
 
          # Export project
-        echo "Building ${{ inputs.BINARY_NAME }} for ${{ inputs.EXPORT_PRESET_NAME }}"
+        echo "Building for ${{ inputs.EXPORT_PRESET_NAME }}"
         cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
         mkdir -p builds/osx/
         mkdir builds/web/
