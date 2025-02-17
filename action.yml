@@ -201,7 +201,7 @@ runs:
                         zip -r web.zip *
                         mv web.zip ../
                         cd ..
-                        upload_path="web.zip"
+                        path="web.zip"
                         ;;
                     *"windows"*|*".exe") channel="windows" ;;
                     *"linux"*"x86_64") channel="linux" ;;
