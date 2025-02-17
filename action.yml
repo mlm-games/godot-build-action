@@ -34,6 +34,18 @@ inputs:
   ITCH_USER_SLASH_GAME:
     description: 'Your username and gamename in the format of "user/game"'
     default: ''
+  RELEASE_KEYSTORE:
+    description: 'Your release keystore'
+    default: ''
+  KEYSTORE_PASSPHRASE:
+    description: 'the passphrase used to encrypt the keystore'
+    default: ''
+  KEY_ALIAS:
+    description: 'Your game signing key alias'
+    default: ''
+  KEY_PASSWORD:
+    description: 'Signing key password'
+    default: ''
     
 
 outputs:
@@ -118,7 +130,19 @@ runs:
         sed -i -e "s:\(^.*java_sdk_path\)\s*=.*$:\1 = "$JAVA_PATH":" $GODOT_CFG
         sed -i -e "s:\(^.*android_sdk_path\)\s*=.*$:\1 = "$ANDROID_SDK_ROOT":" $GODOT_CFG
 
+    - name: Decode Keystore
+      if: {{ inputs.RELEASE_KEYSTORE != '' }}
+      run: |
+        echo "${{ inputs.KEYSTORE }}" > release.keystore.asc
+        gpg -d --passphrase "${{ inputs.KEYSTORE_PASSPHRASE }}" --batch release.keystore.asc > release.keystore
 
+    - name: Insert keystore values
+      if: {{ inputs.RELEASE_KEYSTORE != '' }}
+      run: |
+        cd ${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}
+        export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="./release.keystore"
+        export GODOT_ANDROID_KEYSTORE_RELEASE_USER=${{ inputs.KEY_ALIAS }}
+        export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${{ inputs.KEY_PASSWORD }}
         
     - name: Export project
       id: export
@@ -132,11 +156,7 @@ runs:
         fi
 
         # Set build path
-        if [ "${{ inputs.PROJECT_DIR }}" != "" ]; then
-          BUILD_PATH="${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}/builds/"
-        else
-          BUILD_PATH="${GITHUB_WORKSPACE}/builds/"
-        fi
+        BUILD_PATH="${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}/builds/"
         echo "build=${BUILD_PATH}" >> $GITHUB_OUTPUT
 
 
