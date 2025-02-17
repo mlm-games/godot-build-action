@@ -13,9 +13,9 @@ inputs:
     description: 'Godot version to use, uses latest Godot 4.x release by default. (e.g. 4.2.1)'
     required: false
     default: ''
-  PACKAGE:
-    description: 'Set true to output an artifact zip file'
-    default: false
+  # PACKAGE:
+  #   description: 'Set true to output an artifact zip file'
+  #   default: false
   PROJECT_DIR:
     description: 'Location of Godot project in repository'
     default: "."
@@ -25,9 +25,9 @@ inputs:
   BUTLER_UPLOAD:
     description: 'Upload to itch.io using butler'
     default: false
-  BUTLER_UPLOAD_CHANNEL:
-    description: 'Channel to upload to itch.io using butler'
-    default: "windows"
+  # BUTLER_UPLOAD_CHANNEL:
+  #   description: 'Channel to upload to itch.io using butler'
+  #   default: "windows"
   BUTLER_CREDENTIALS:
     description: 'butler credentials'
     default: "windows"
@@ -165,34 +165,52 @@ runs:
          # Export project
         echo "Building for ${{ inputs.EXPORT_PRESET_NAME }}"
         cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
+        echo "version_name=$(grep 'version/name=' export_presets.cfg | awk -F'"' '{print $2}')" >> $GITHUB_ENV
+        echo "version_code=$(grep 'version/code=' export_presets.cfg | head -1 | awk -F'=' '{print $2}')" >> $GITHUB_ENV
         mkdir -p builds/osx/
         mkdir builds/web/
         ~/godot-binary/godot --headless --${mode} "${{ inputs.EXPORT_PRESET_NAME }}"
         echo "Build Done"
-
+            
     - name: Upload using butler
       if: inputs.BUTLER_UPLOAD == 'true'
       shell: bash
       run: |
-        curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default && unzip butler.zip && cp butler /usr/bin && chmod +x /usr/bin/butler
-    
-        set -e
-    
+        curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+        unzip butler.zip
+        cp butler /usr/bin
+        chmod +x /usr/bin/butler
+        
         export BUTLER_API_KEY=${{ inputs.BUTLER_CREDENTIALS }}
         
-        versionArgument=""
+        # Get export paths and upload each existing file
+        export_paths=($(grep 'export_path=' export_presets.cfg | awk -F'=' '{print $2}' | tr -d '"'))
         
-        if [ "$VERSION" != "" ]
-        then
-            versionArgument="--userversion ${VERSION}"
-        elif [ "$VERSION_FILE" != "" ]
-        then
-            versionArgument="--userversion-file ${VERSION_FILE}"
-        fi
-        
-        echo "butler push \"$PACKAGE\" ${{ inputs.ITCH_USER_SLASH_GAME }}:${{ inputs.BUTLER_UPLOAD_CHANNEL }} ${versionArgument}"
-        butler push "$PACKAGE" ${{ inputs.ITCH_USER_SLASH_GAME }}:${{ inputs.BUTLER_UPLOAD_CHANNEL }} ${versionArgument}
-              
+        for path in "${export_paths[@]}"; do
+            if [ -f "$path" ]; then
+                echo "Found exported file: $path"
+                
+                # Determine the channel based on the file path/name
+                channel=""
+                case "$path" in
+                    *"windows"*|*".exe") channel="windows" ;;
+                    *"web"*|*"html") channel="web" ;;
+                    *"linux"*"x86_64") channel="linux" ;;
+                    *"linux"*"aarch64"*|*"arm64") channel="linux-arm64" ;;
+                    *"macOS"*|*"osx"*) channel="osx" ;;
+                    *"android"*"arm32"*) channel="android-arm32" ;;
+                    *"android"*"arm64"*) channel="android-arm64" ;;
+                    *"android"*"x86_64"*) channel="android-x86_64" ;;
+                    *) echo "Unknown platform for $path" ; continue ;;
+                esac
+    
+                # Upload to itch.io
+                echo "Uploading to channel: $channel"
+                butler push "$path" "${{ inputs.ITCH_USER_SLASH_GAME }}:$channel" --userversion ${{ env.version_name }}
+            else
+                echo "File not found: $path"
+            fi
+        done              
 
 
 branding:
