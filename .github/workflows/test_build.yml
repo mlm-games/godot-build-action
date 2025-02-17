@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform: ["Windows Desktop", "Linux/X11", macOS, Android]
+        platform: ["Windows Desktop", "Linux/X11", macOS, "Android arm64"]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
