@@ -23,7 +23,6 @@ jobs:
       - name: Build
         uses: mlm-games/godot-build-action@main #Idk why v1 doesnt work...
         with:
-          BINARY_NAME: test-game
           EXPORT_PRESET_NAME: ${{ matrix.platform }}
           PROJECT_DIR: test_build_game  
           DEBUG_MODE: true
