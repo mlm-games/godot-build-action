@@ -66,10 +66,10 @@ runs:
         if [ -z "${{ inputs.GODOT_VER }}" ]; then
           if [ "${{ inputs.GODOT_PREVIEW_BUILDS }}" == "true" ]; then
             # Get latest Godot 4.x release version from GitHub API
-            LATEST_VER=$(curl -s https://api.github.com/repos/godotengine/godot-builds/releases | grep -oP '"tag_name": "\K[^"]+' | grep '^4\.' | head -n 1')
+            LATEST_VER=$(curl -s https://api.github.com/repos/godotengine/godot-builds/releases | grep -oP '"tag_name": "\K[^"]+' | grep '^4\.' | head -n 1 )
           else
             # Get latest Godot 4.x preview version from GitHub API
-            LATEST_VER=$(curl -s https://api.github.com/repos/godotengine/godot/releases | grep -oP '"tag_name": "\K[^"]+' | grep '^4\.' | head -n 1')
+            LATEST_VER=$(curl -s https://api.github.com/repos/godotengine/godot/releases | grep -oP '"tag_name": "\K[^"]+' | grep '^4\.' | head -n 1 )
           fi
             echo "GODOT_VERSION=${LATEST_VER}" >> $GITHUB_OUTPUT
             echo "GODOT_FOLDER_VERSION="${GODOT_VERSION//[^a-zA-Z0-9_]/.}"" >> $GITHUB_OUTPUT
