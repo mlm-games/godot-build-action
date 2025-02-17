@@ -177,7 +177,7 @@ runs:
          # Export project
         echo "Building for ${{ inputs.EXPORT_PRESET_NAME }}"
         cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
-        echo "version_name=$(grep 'version/name=' export_presets.cfg | awk -F'"' '{print $2}')" >> $GITHUB_ENV
+        echo "version_name=$(grep 'version/name=' export_presets.cfg | head -1 | awk -F'"' '{print $2}')" >> $GITHUB_ENV
         echo "version_code=$(grep 'version/code=' export_presets.cfg | head -1 | awk -F'=' '{print $2}')" >> $GITHUB_ENV
         mkdir -p builds/osx/
         mkdir builds/web/
