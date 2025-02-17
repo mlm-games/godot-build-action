@@ -86,9 +86,9 @@ runs:
       run: |
         GODOT_BASENAME="Godot_v${{ steps.version.outputs.GODOT_VERSION }}_linux.x86_64"
         if [ "${{ inputs.GODOT_PREVIEW_BUILDS }}" == "true" ]; then
-            wget -q "https://github.com/godotengine/godot-builds/releases/download/${{ steps.version.outputs.GODOT_VERSION }}/${GODOT_BASENAME}.zip" -O ~/godot-binary/godot.zip
+            wget -q "https://github.com/godotengine/godot-builds/releases/download/${{ steps.version.outputs.GODOT_VERSION }}/$GODOT_BASENAME.zip" -O ~/godot-binary/godot.zip
         else
-            wget -q "https://github.com/godotengine/godot/releases/download/${{ steps.version.outputs.GODOT_VERSION }}/${GODOT_BASENAME}.zip" -O ~/godot-binary/godot.zip
+            wget -q "https://github.com/godotengine/godot/releases/download/${{ steps.version.outputs.GODOT_VERSION }}/$GODOT_BASENAME.zip" -O ~/godot-binary/godot.zip
         fi
         unzip -q ~/godot-binary/godot.zip -d ~/godot-binary
         chmod +x ~/godot-binary/${GODOT_BASENAME}
