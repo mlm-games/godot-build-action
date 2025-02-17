@@ -183,11 +183,17 @@ runs:
         mkdir builds/web/
         ~/godot-binary/godot --headless --${mode} "${{ inputs.EXPORT_PRESET_NAME }}"
         echo "Build Done"
-            
+                
     - name: Upload using butler
-      if: inputs.BUTLER_UPLOAD == 'true'
+      if: inputs.BUTLER_UPLOAD == 'true'  # This should prevent the step from running
       shell: bash
       run: |
+        if [ -n "${{ env.version_name }}" ]; then
+          version_arg="--userversion ${{ env.version_name }}"
+        else
+          version_arg=""
+        fi
+    
         curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
         unzip butler.zip
         cp butler /usr/bin
@@ -207,7 +213,6 @@ runs:
                 case "$path" in
                     *"web"*|*"html")
                         channel="web"
-                        # Special handling for web builds
                         web_dir=$(dirname "$path")
                         cd "$web_dir"
                         zip -r web.zip *
@@ -224,11 +229,11 @@ runs:
     
                 # Upload to itch.io
                 echo "Uploading to channel: $channel"
-                butler push "$path" "${{ inputs.ITCH_USER_SLASH_GAME }}:$channel" --userversion ${{ env.version_name }}
+                butler push "$path" "${{ inputs.ITCH_USER_SLASH_GAME }}:$channel" $version_arg
             else
                 echo "File not found: $path"
             fi
-        done              
+        done
 
 
 branding:
