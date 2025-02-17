@@ -131,14 +131,14 @@ runs:
         sed -i -e "s:\(^.*android_sdk_path\)\s*=.*$:\1 = "$ANDROID_SDK_ROOT":" $GODOT_CFG
 
     - name: Decode Keystore
-      if: {{ inputs.RELEASE_KEYSTORE != '' }}
+      if: inputs.RELEASE_KEYSTORE != ''
       shell: bash
       run: |
         echo "${{ inputs.KEYSTORE }}" > release.keystore.asc
         gpg -d --passphrase "${{ inputs.KEYSTORE_PASSPHRASE }}" --batch release.keystore.asc > release.keystore
 
     - name: Insert keystore values
-      if: {{ inputs.RELEASE_KEYSTORE != '' }}
+      if: inputs.RELEASE_KEYSTORE != ''
       shell: bash
       run: |
         cd ${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}
@@ -171,7 +171,7 @@ runs:
         echo "Build Done"
 
     - name: Upload using butler
-      if: ${{ inputs.BUTLER_UPLOAD == 'true' }}
+      if: inputs.BUTLER_UPLOAD == 'true'
       shell: bash
       run: |
         curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default && unzip butler.zip && cp butler /usr/bin && chmod +x /usr/bin/butler
