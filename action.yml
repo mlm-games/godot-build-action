@@ -72,17 +72,14 @@ runs:
             LATEST_VER=$(curl -s https://api.github.com/repos/godotengine/godot/releases | grep -oP '"tag_name": "\K[^"]+' | grep '^4\.' | head -n 1 )
           fi
             echo "GODOT_VERSION=${LATEST_VER}" >> $GITHUB_OUTPUT
-            echo "GODOT_FOLDER_VERSION=$(echo $GODOT_VERSION | sed 's/[^a-zA-Z0-9_]/./g')" >> $GITHUB_OUTPUT
         else
           echo "GODOT_VERSION=${{ inputs.GODOT_VER }}" >> $GITHUB_OUTPUT
-          echo "GODOT_FOLDER_VERSION=$(echo $GODOT_VERSION | sed 's/[^a-zA-Z0-9_]/./g')" >> $GITHUB_OUTPUT
         fi
 
     - name: Create directories
       shell: bash
       run: |
-        mkdir -p ~/.local/share/godot/export_templates/${{ steps.version.outputs.GODOT_FOLDER_VERSION }}
-        mkdir -p ~/godot-binary
+        mkdir -p ~/.local/share/godot/export_templates/$(echo ${{ steps.version.outputs.GODOT_VERSION }} | sed 's/[^a-zA-Z0-9_]/./g')
 
     - name: Download Godot
       shell: bash
@@ -103,8 +100,8 @@ runs:
         TEMPLATES_BASENAME="Godot_v${{ steps.version.outputs.GODOT_VERSION }}_export_templates"
         wget -q "https://github.com/godotengine/godot/releases/download/${{ steps.version.outputs.GODOT_VERSION }}/${TEMPLATES_BASENAME}.tpz" -O ~/templates.tpz
         unzip -q ~/templates.tpz -d ~/.local/share/godot/export_templates/temp
-        mkdir -p ~/.local/share/godot/export_templates/${{ steps.version.outputs.GODOT_FOLDER_VERSION }}
-        mv ~/.local/share/godot/export_templates/temp/templates/* ~/.local/share/godot/export_templates/${{ steps.version.outputs.GODOT_FOLDER_VERSION }}/
+        mkdir -p ~/.local/share/godot/export_templates/$(echo ${{ steps.version.outputs.GODOT_VERSION }} | sed 's/[^a-zA-Z0-9_]/./g')
+        mv ~/.local/share/godot/export_templates/temp/templates/* ~/.local/share/godot/export_templates/$(echo ${{ steps.version.outputs.GODOT_VERSION }} | sed 's/[^a-zA-Z0-9_]/./g')/
 
     - name: Setup Android SDK
       if: contains(inputs.EXPORT_PRESET_NAME, 'Android') #TODO: implement a better way?
