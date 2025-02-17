@@ -84,6 +84,10 @@ jobs:
 | `DEBUG_MODE` | Whether to use `--export-debug` | No | false |
 | `BUTLER_UPLOAD` | Whether to upload to itch.io | No | false |
 | `BUTLER_UPLOAD_NAME` | The platform to upload for in itch.io | No | 'windows' |
+| `RELEASE_KEYSTORE` | Your release keystore | No | '' |
+| `KEYSTORE_PASSPHRASE` | The passphrase used to encrypt the keystore | No | '' |
+| `KEY_ALIAS` | Your game signing key alias | No | '' |
+| `KEY_PASSPHRASE` | Signing key password | No | '' |
 
 
 ## Outputs
