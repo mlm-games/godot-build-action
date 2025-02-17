@@ -146,7 +146,7 @@ runs:
       if: inputs.RELEASE_KEYSTORE != ''
       shell: bash
       run: |
-        echo "${{ inputs.KEYSTORE }}" > release.keystore.asc
+        echo "${{ inputs.RELEASE_KEYSTORE }}" > release.keystore.asc
         gpg -d --passphrase "${{ inputs.KEYSTORE_PASSPHRASE }}" --batch release.keystore.asc > release.keystore
 
     - name: Insert keystore values
