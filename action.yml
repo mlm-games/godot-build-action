@@ -213,8 +213,8 @@ runs:
                     *"windows"*|*".exe") channel="windows" ;;
                     *".x86_64") channel="linux-x86_64" ;;
                     *".aarch64"*|*"arm64") channel="linux-arm64" ;;
-                    *".apk") channel="android" ;;
                     *"x86"*".apk") channel="android-x86_64" ;;
+                    *".apk") channel="android" ;;
                     *"dmg.zip") channel="macos" ;;
                     *) echo "Unknown platform for $path" ; continue ;;
                 esac
