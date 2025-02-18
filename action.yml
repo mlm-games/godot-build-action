@@ -112,7 +112,8 @@ runs:
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
-      
+      with:
+        packages: ''
     - name: Setup Android SDK
       if: contains(inputs.EXPORT_PRESET_NAME, 'Android') #TODO: implement a better way?
       shell: bash
@@ -157,8 +158,11 @@ runs:
         BUILD_PATH="${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}/builds/"
         echo "build=${BUILD_PATH}" >> $GITHUB_OUTPUT
 
-
-         # Export project
+        export GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$(find ~ -name "release.keystore" -print)
+        export GODOT_ANDROID_KEYSTORE_RELEASE_USER=${{ inputs.KEY_ALIAS }}
+        export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${{ inputs.KEY_PASSWORD }}
+        
+        # Export project
         echo "Building for ${{ inputs.EXPORT_PRESET_NAME }}"
         cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
         echo "version_name=$(grep 'version/name=' export_presets.cfg | head -1 | awk -F'"' '{print $2}')" >> $GITHUB_ENV
