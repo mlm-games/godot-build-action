@@ -213,7 +213,7 @@ runs:
                     *"windows"*|*".exe") channel="windows" ;;
                     *"linux"*".x86_64") channel="linux-x86_64" ;;
                     *"linux"*".aarch64"*|*"arm64") channel="linux-arm64" ;;
-                    *"android"*".apk") channel="android-universal" ;;
+                    *".apk") channel="android" ;;
                     *"x86"*".apk") channel="android-x86_64" ;;
                     *"dmg.zip") channel="macos" ;;
                     *) echo "Unknown platform for $path" ; continue ;;
