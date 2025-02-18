@@ -49,6 +49,9 @@ inputs:
   KEY_PASSWORD:
     description: 'Signing key password'
     default: ''
+  EXPORT_DIR:
+    description: 'The directory your files are exported to...'
+    default: 'builds'
     
 
 outputs:
@@ -155,7 +158,7 @@ runs:
         fi
 
         # Set build path
-        BUILD_PATH="${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}/builds/"
+        BUILD_PATH="${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}/${{ inputs.EXPORT_DIR }}/"
         echo "build=${BUILD_PATH}" >> $GITHUB_OUTPUT
 
         export GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$(find ~ -name "release.keystore" -print)
@@ -167,8 +170,8 @@ runs:
         cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
         echo "version_name=$(grep 'version/name=' export_presets.cfg | head -1 | awk -F'"' '{print $2}')" >> $GITHUB_ENV
         echo "version_code=$(grep 'version/code=' export_presets.cfg | head -1 | awk -F'=' '{print $2}')" >> $GITHUB_ENV
-        mkdir -p builds/osx/
-        mkdir builds/web/
+        mkdir -p ${{ inputs.EXPORT_DIR }}/osx/
+        mkdir ${{ inputs.EXPORT_DIR }}/web/
         ~/godot-binary/godot --headless --${mode} "${{ inputs.EXPORT_PRESET_NAME }}"
         echo "Build Done"
                 
@@ -205,7 +208,7 @@ runs:
                         zip -r web.zip *
                         mv web.zip ../
                         cd ..
-                        path="web.zip"
+                        path="${{ inputs.EXPORT_DIR }}/web.zip"
                         ;;
                     *"windows"*|*".exe") channel="windows" ;;
                     *"linux"*".x86_64") channel="linux" ;;
