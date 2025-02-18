@@ -124,6 +124,10 @@ This happens when the preset name in your workflow doesn't match the ones in you
 2. Check the exact names of your export presets
 3. Use those exact names in your workflow
 
+### Export directory doesnt exist
+
+Use the input `EXPORT_DIR` to set your custom export directory
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
