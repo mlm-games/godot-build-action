@@ -186,7 +186,7 @@ runs:
         unzip butler.zip
         chmod +x butler
         
-        cat ${{ inputs.BUTLER_CREDENTIALS }} >> ~/.config/itch/butler_creds
+        export BUTLER_API_KEY=${{ inputs.BUTLER_CREDENTIALS }}
         
         # Get export paths and upload each existing file
         export_paths=($(grep 'export_path=' export_presets.cfg | awk -F'=' '{print $2}' | tr -d '"'))
