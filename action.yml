@@ -208,9 +208,9 @@ runs:
                         path="web.zip"
                         ;;
                     *"windows"*|*".exe") channel="windows" ;;
-                    *"linux"*"x86_64") channel="linux" ;;
-                    *"linux"*"aarch64"*|*"arm64") channel="linux-arm64" ;;
-                    *"android"*"apk") channel="android" ;;
+                    *"linux"*".x86_64") channel="linux" ;;
+                    *"linux"*".aarch64"*|*"arm64") channel="linux-arm64" ;;
+                    *"android"*".apk") channel="android-universal" ;;
                     *"dmg.zip") channel="macos" ;;
                     *) echo "Unknown platform for $path" ; continue ;;
                 esac
