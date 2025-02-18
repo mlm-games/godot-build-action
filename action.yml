@@ -173,7 +173,7 @@ runs:
         echo "Build Done"
                 
     - name: Upload using butler
-      if: inputs.BUTLER_UPLOAD == 'true'  # This should prevent the step from running
+      if: inputs.BUTLER_UPLOAD == 'true'
       shell: bash
       run: |
         if [ -n "${{ env.version_name }}" ]; then
@@ -184,10 +184,9 @@ runs:
     
         curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
         unzip butler.zip
-        cp butler /usr/bin
-        chmod +x /usr/bin/butler
+        chmod +x butler
         
-        export BUTLER_API_KEY=${{ inputs.BUTLER_CREDENTIALS }}
+        cat ${{ inputs.BUTLER_CREDENTIALS }} >> ~/.config/itch/butler_creds
         
         # Get export paths and upload each existing file
         export_paths=($(grep 'export_path=' export_presets.cfg | awk -F'=' '{print $2}' | tr -d '"'))
@@ -218,7 +217,7 @@ runs:
     
                 # Upload to itch.io
                 echo "Uploading to channel: $channel"
-                butler push "$path" "${{ inputs.ITCH_USER_SLASH_GAME }}:$channel" $version_arg
+                ./butler push "$path" "${{ inputs.ITCH_USER_SLASH_GAME }}:$channel" $version_arg
             else
                 echo "File not found: $path"
             fi
