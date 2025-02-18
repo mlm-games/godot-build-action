@@ -89,8 +89,9 @@ jobs:
 | `KEY_ALIAS` | Your game signing key alias | No | '' |
 | `KEY_PASSPHRASE` | Signing key password | No | '' |
 
-Also includes some neesh inputs (like for using preview builds), You could check for all the inputs in the action.yml file..
+Also includes some neesh inputs (like for using preview builds), You could check for all the inputs in the action.yml file.
 
+For a reference workflow, check the workflows of this [repo](https://github.com/mlm-games/just-keep-chasing).
 
 ## Outputs
 
