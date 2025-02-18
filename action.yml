@@ -206,9 +206,9 @@ runs:
                         web_dir=$(dirname "$path")
                         cd "$web_dir"
                         zip -r web.zip *
-                        mv web.zip ../
-                        cd ..
-                        path="${{ inputs.EXPORT_DIR }}/web.zip"
+                        mv web.zip ../../
+                        cd ../../
+                        path="web.zip"
                         ;;
                     *"windows"*|*".exe") channel="windows" ;;
                     *"linux"*".x86_64") channel="linux-x86_64" ;;
