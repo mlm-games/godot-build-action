@@ -154,7 +154,7 @@ runs:
       shell: bash
       run: |
         cd ${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}
-        export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="./release.keystore"
+        export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="release.keystore"
         export GODOT_ANDROID_KEYSTORE_RELEASE_USER=${{ inputs.KEY_ALIAS }}
         export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${{ inputs.KEY_PASSWORD }}
         
