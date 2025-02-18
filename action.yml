@@ -147,14 +147,13 @@ runs:
       shell: bash
       run: |
         echo "${{ inputs.RELEASE_KEYSTORE }}" > release.keystore.asc
-        gpg -d --passphrase "${{ inputs.KEYSTORE_PASSPHRASE }}" --batch release.keystore.asc > release.keystore
+        gpg -d --passphrase "${{ inputs.KEYSTORE_PASSPHRASE }}" --batch release.keystore.asc > "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}/release.keystore"
 
     - name: Insert keystore values
       if: inputs.RELEASE_KEYSTORE != ''
       shell: bash
       run: |
-        cd ${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}
-        export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="release.keystore"
+        export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}/release.keystore"
         export GODOT_ANDROID_KEYSTORE_RELEASE_USER=${{ inputs.KEY_ALIAS }}
         export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${{ inputs.KEY_PASSWORD }}
         
