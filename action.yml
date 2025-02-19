@@ -211,6 +211,8 @@ runs:
                         path="web.zip"
                         ;;
                     *"windows"*|*".exe") channel="windows" ;;
+                    *"arm32"*".apk") channel="android-arm32" ;;
+                    *"arm64"*".apk") channel="android-arm64" ;;
                     *".x86_64") channel="linux-x86_64" ;;
                     *".aarch64"*|*"arm64") channel="linux-arm64" ;;
                     *"x86"*".apk") channel="android-x86_64" ;;
