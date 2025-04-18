@@ -52,6 +52,9 @@ inputs:
   EXPORT_DIR:
     description: 'The directory your files are exported to...'
     default: 'builds'
+  INSTALL_BLENDER:
+    description: 'Installs blender (for any .blend files)'
+    default: false
     
 
 outputs:
@@ -145,6 +148,13 @@ runs:
         export GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$(find ~ -name "release.keystore" -print)
         export GODOT_ANDROID_KEYSTORE_RELEASE_USER=${{ inputs.KEY_ALIAS }}
         export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${{ inputs.KEY_PASSWORD }}
+
+    - name: Install blender
+      if: inputs.INSTALL_BLENDER == 'true'
+      shell: bash
+      run: |
+        sudo apt update
+        sudo apt install -y blender
         
     - name: Export project
       id: export
