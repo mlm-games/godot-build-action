@@ -116,6 +116,14 @@ runs:
         java-version: '17'
         distribution: 'temurin'
 
+    - name: Install blender
+      if: inputs.INSTALL_BLENDER == 'true'
+      shell: bash
+      run: |
+        sudo apt update
+        sudo apt install -y blender
+        export BLENDER_PATH=$(which blender)
+
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       with:
@@ -131,6 +139,7 @@ runs:
         export GODOT_CFG=$(ls ~/.config/godot/editor_settings-*.tres)
         sed -i -e "s:\(^.*java_sdk_path\)\s*=.*$:\1 = "$JAVA_PATH":" $GODOT_CFG
         sed -i -e "s:\(^.*android_sdk_path\)\s*=.*$:\1 = "$ANDROID_SDK_ROOT":" $GODOT_CFG
+        sed -i -e "s:\(^.*editors/material_editor/external_editor\)\s*=.*$:\1 = \"$BLENDER_PATH\":" $GODOT_CFG
 
 
     - name: Decode Keystore
@@ -148,13 +157,6 @@ runs:
         export GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$(find ~ -name "release.keystore" -print)
         export GODOT_ANDROID_KEYSTORE_RELEASE_USER=${{ inputs.KEY_ALIAS }}
         export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${{ inputs.KEY_PASSWORD }}
-
-    - name: Install blender
-      if: inputs.INSTALL_BLENDER == 'true'
-      shell: bash
-      run: |
-        sudo apt update
-        sudo apt install -y blender
         
     - name: Export project
       id: export
