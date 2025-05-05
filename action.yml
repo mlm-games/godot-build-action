@@ -134,7 +134,7 @@ runs:
       run: |        
         sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "build-tools;34.0.0" "platforms;android-34" "cmdline-tools;latest" "cmake;3.10.2.4988404" "ndk;23.2.8568313"        
         cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
-        ~/godot-binary/godot --headless --import
+        timeout 30m ~/godot-binary/godot --headless --import
 
         export GODOT_CFG=$(ls ~/.config/godot/editor_settings-*.tres)
         sed -i -e "s:\(^.*java_sdk_path\)\s*=.*$:\1 = "$JAVA_PATH":" $GODOT_CFG
