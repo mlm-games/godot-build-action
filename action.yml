@@ -360,6 +360,8 @@ runs:
         curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
         unzip -q butler.zip
         chmod +x butler
+
+        echo "butler initialised in directory $(pwd)"
         
         # Set butler credentials
         export BUTLER_API_KEY=${{ inputs.BUTLER_CREDENTIALS }}
@@ -438,7 +440,7 @@ runs:
               channel=$(get_channel "$file")
               
               if [ -n "$channel" ]; then
-                echo "Uploading $(basename "$file") to itch.io channel: $channel"
+                echo "Uploading $(basename "$file") from path "$file" to itch.io channel: $channel"
                 ./butler push "$file" "${{ inputs.ITCH_USER_SLASH_GAME }}:$channel" $version_arg
                 uploaded=true
               else
