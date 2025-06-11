@@ -430,7 +430,7 @@ runs:
             cd ..
             
             echo "Uploading web.zip to itch.io channel: html5"
-            ./butler push "web.zip" "${{ inputs.ITCH_USER_SLASH_GAME }}:html5" $version_arg
+            ${GITHUB_WORKSPACE}/butler push "web.zip" "${{ inputs.ITCH_USER_SLASH_GAME }}:html5" $version_arg
             uploaded=true
           fi
         else
@@ -441,7 +441,7 @@ runs:
               
               if [ -n "$channel" ]; then
                 echo "Uploading $(basename "$file") from path "$file" to itch.io channel: $channel"
-                ./butler push "$file" "${{ inputs.ITCH_USER_SLASH_GAME }}:$channel" $version_arg
+                ${GITHUB_WORKSPACE}/butler push "$file" "${{ inputs.ITCH_USER_SLASH_GAME }}:$channel" $version_arg
                 uploaded=true
               else
                 echo "Could not determine channel for file: $file"
