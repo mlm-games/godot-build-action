@@ -182,7 +182,8 @@ runs:
         
         # Move templates to correct version folder
         if [ -d ~/.local/share/godot/export_templates/templates ]; then
-          mv ~/.local/share/godot/export_templates/templates ~/.local/share/godot/export_templates/${TEMPLATE_VERSION}
+          ls ~/.local/share/godot/export_templates/${TEMPLATE_VERSION} # for debug
+          mv -f ~/.local/share/godot/export_templates/templates ~/.local/share/godot/export_templates/${TEMPLATE_VERSION}
         fi
         
         echo "Templates installed to: ~/.local/share/godot/export_templates/${TEMPLATE_VERSION}"
