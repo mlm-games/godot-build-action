@@ -183,7 +183,6 @@ runs:
         set +e # Ignore an error here if directory not empty
         # Move templates to correct version folder
         if [ -d ~/.local/share/godot/export_templates/templates ]; then
-          ls ~/.local/share/godot/export_templates/${TEMPLATE_VERSION} # for debug
           mv -f --update=UPDATE ~/.local/share/godot/export_templates/templates ~/.local/share/godot/export_templates/${TEMPLATE_VERSION}
         fi
         set -e
