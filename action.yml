@@ -178,13 +178,13 @@ runs:
         }
         
         # Extract templates
-        unzip -q ~/templates.tpz -d ~/.local/share/godot/export_templates/
+        unzip -o -q ~/templates.tpz -d ~/.local/share/godot/export_templates/
         
         set +e # Ignore an error here if directory not empty
         # Move templates to correct version folder
         if [ -d ~/.local/share/godot/export_templates/templates ]; then
           ls ~/.local/share/godot/export_templates/${TEMPLATE_VERSION} # for debug
-          mv -f --update ~/.local/share/godot/export_templates/templates ~/.local/share/godot/export_templates/${TEMPLATE_VERSION}
+          mv -f --update=UPDATE ~/.local/share/godot/export_templates/templates ~/.local/share/godot/export_templates/${TEMPLATE_VERSION}
         fi
         set -e
         
