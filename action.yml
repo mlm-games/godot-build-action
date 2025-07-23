@@ -377,51 +377,57 @@ runs:
           version_arg="--userversion ${{ steps.export.outputs.version_name }}"
         fi
         
-        # Function to determine channel from file
+        # Function to determine channel from preset name and file
         get_channel() {
           local file="$1"
           local preset="${{ inputs.EXPORT_PRESET_NAME }}"
           
-          # First check by preset name
+          # For Android, check the file name for architecture
+          if [[ "$preset" == *"Android"* ]]; then
+            case "$file" in
+              *"arm32"*) echo "android-arm32" ;;
+              *"arm64"*) echo "android-arm64" ;;
+              *"x86_64"*|*"x86-64"*) echo "android-x86_64" ;;
+              *"x86"*) echo "android-x86" ;;
+              *) echo "android" ;;  # Generic Android if no architecture specified
+            esac
+            return
+          fi
+          
+          # For other platforms, check by preset name
           case "$preset" in
+            *"Windows x86_32"*) echo "windows-x86" ;;
+            *"Windows arm64"*) echo "windows-arm64" ;;
             *"Windows"*) echo "windows" ;;
-            *"Linux"*|*"arm64"*) echo "linux-arm64" ;;
-            *"Linux"*|*"X11"*) echo "linux-x86_64" ;;
+            *"Linux arm64"*) echo "linux-arm64" ;;
+            *"Linux arm32"*) echo "linux-arm32" ;;
+            *"Linux x86_32"*) echo "linux-x86" ;;
+            *"Linux"*) echo "linux-x86_64" ;;
             *"macOS"*|*"Mac"*) echo "osx" ;;
-            *"Android x86"*) echo "android-x86_64" ;;
-            *"Android arm32"*) echo android-arm32" ;;
-            *"Android arm64"*) echo android-arm64" ;;
-            *"Android"*) echo "android" ;;
             *"Web"*|*"HTML"*) echo "html5" ;;
-            *)
-              # Fallback to file extension
+            *"iOS"*) echo "ios" ;;
+            *) 
+              # Fallback to file extension analysis
               case "$file" in
-                *.exe) echo "windows" ;;
-                *.x86_64) echo "linux-x86_64" ;;
-                *.arm64|*.aarch64) echo "linux-arm64" ;;
-                *.apk)
+                *.exe) 
                   if [[ "$file" == *"arm64"* ]]; then
-                    echo "android-arm64"
-                  elif [[ "$file" == *"x86"* ]]; then
-                    echo "android-x86_64"
+                    echo "windows-arm64"
+                  elif [[ "$file" == *"x86_32"* ]] || [[ "$file" == *"x86-32"* ]]; then
+                    echo "windows-x86"
                   else
-                    echo "android"
+                    echo "windows"
                   fi
                   ;;
-                *.zip)
-                  if [[ "$file" == *"mac"* ]] || [[ "$file" == *"osx"* ]]; then
-                    echo "osx"
-                  elif [[ "$file" == *"web"* ]] || [[ "$file" == *"html"* ]]; then
-                    echo "html5"
-                  fi
-                  ;;
+                *.x86_64) echo "linux-x86_64" ;;
+                *.x86_32|*.x86-32) echo "linux-x86" ;;
+                *.arm64|*.aarch64) echo "linux-arm64" ;;
+                *.arm32) echo "linux-arm32" ;;
+                *.ipa) echo "ios" ;;
                 *) echo "" ;;
               esac
               ;;
           esac
         }
-
-        
         
         # Find and upload exported files
         uploaded=false
@@ -441,12 +447,12 @@ runs:
           fi
         else
           # For other platforms, find the exported file
-          for file in $(find "${{ inputs.EXPORT_DIR }}" -type f \( -name "*.exe" -o -name "*.x86_64" -o -name "*.arm64" -o -name "*.apk" -o -name "*.zip" -o -name "*.dmg" \) | head -10); do
+          for file in $(find "${{ inputs.EXPORT_DIR }}" -type f \( -name "*.exe" -o -name "*.x86_64" -o -name "*.x86_32" -o -name "*.arm64" -o -name "*.arm32" -o -name "*.apk" -o -name "*.zip" -o -name "*.dmg" -o -name "*.ipa" \) | head -10); do
             if [ -f "$file" ]; then
               channel=$(get_channel "$file")
               
               if [ -n "$channel" ]; then
-                echo "Uploading $(basename "$file") from path "$file" to itch.io channel: $channel"
+                echo "Uploading $(basename "$file") from path $file to itch.io channel: $channel"
                 ${GITHUB_WORKSPACE}/butler push "$file" "${{ inputs.ITCH_USER_SLASH_GAME }}:$channel" $version_arg
                 uploaded=true
               else
@@ -461,7 +467,7 @@ runs:
           echo "Available files in export directory:"
           find "${{ inputs.EXPORT_DIR }}" -type f
         fi
-
+        
     - name: Cleanup
       if: always()
       shell: bash
