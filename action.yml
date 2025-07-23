@@ -385,10 +385,12 @@ runs:
           # First check by preset name
           case "$preset" in
             *"Windows"*) echo "windows" ;;
-            *"Linux/X11 arm64"*) echo "linux-arm64" ;;
+            *"Linux"*|*"arm64"*) echo "linux-arm64" ;;
             *"Linux"*|*"X11"*) echo "linux-x86_64" ;;
             *"macOS"*|*"Mac"*) echo "osx" ;;
             *"Android x86"*) echo "android-x86_64" ;;
+            *"Android arm32"*) echo android-arm32" ;;
+            *"Android arm64"*) echo android-arm64" ;;
             *"Android"*) echo "android" ;;
             *"Web"*|*"HTML"*) echo "html5" ;;
             *)
@@ -418,6 +420,8 @@ runs:
               ;;
           esac
         }
+
+        
         
         # Find and upload exported files
         uploaded=false
