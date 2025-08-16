@@ -1,4 +1,4 @@
-name: Build Game
+name: Build Game (Action Test)
 
 on:
   push:
@@ -10,42 +10,39 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        platform: ["Windows Desktop", "Linux/X11", macOS, "Android arm64"]
       fail-fast: false
+      matrix:
+        platform: ["Windows Desktop", "Linux/X11", "macOS", "Android arm64"]
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Clone test game
         run: |
           git clone https://github.com/mlm-games/asteroids-revenge --depth=1 test_build_game
-      
-      - name: Build
-        uses: mlm-games/godot-build-action@main #Idk why v1 doesnt work...
+
+      - name: Build with action
+        id: build
+        uses: mlm-games/godot-build-action@v1
         with:
           EXPORT_PRESET_NAME: ${{ matrix.platform }}
-          PROJECT_DIR: test_build_game  
-          DEBUG_MODE: true
+          PROJECT_DIR: test_build_game
+          DEBUG_MODE: "true"
+          GODOT_VER: ""
+          GODOT_PREVIEW_BUILDS: "false"
+          EXPORT_DIR: builds
+          VERBOSE_IMPORT: "true"
 
-      - name: Debug printing
+      - name: Debug: list Godot dirs
         if: always()
         run: |
-          ls ~/.local/share/godot/*/*/*
-          ls ~/.local/share/godot/*
-          ls ~/.local/share/godot/*/*
-          ls ~/.local/share/godot
+          set -x
+          ls -la ~/.local/share/godot || true
+          ls -la ~/.local/share/godot/export_templates || true
+          find ~/.local/share/godot/export_templates -maxdepth 2 -type d -print || true
 
-      
-      - name: Set artifact name
-        id: artifact-name
-        shell: bash
-        run: |
-          PLATFORM="${{ matrix.platform }}"
-          SAFE_NAME="${PLATFORM//[^a-zA-Z0-9_]/_}"
-          echo "name=${SAFE_NAME}" >> $GITHUB_OUTPUT
-      
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.artifact-name.outputs.name }}-build
-          path: ${{ github.workspace }}/test_build_game/builds/
+          name: ${{ matrix.platform }}-build
+          path: ${{ steps.build.outputs.build }}
