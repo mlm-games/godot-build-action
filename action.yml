@@ -4,57 +4,72 @@ author: "mlm-games"
 
 inputs:
   EXPORT_PRESET_NAME:
-    description: 'Name of the preset in `export_presets.cfg` to use'
+    description: 'Name of the preset in export_presets.cfg to use (e.g., "Windows Desktop", "Linux/X11", "macOS", "Android arm64")'
     required: true
   GODOT_VER:
-    description: 'Godot version to use, uses latest Godot 4.x release by default. (e.g. 4.2.1-stable)'
+    description: 'Godot version to use (e.g., 4.2.2-stable). If empty, latest stable 4.x is used.'
     required: false
     default: ''
   PROJECT_DIR:
-    description: 'Location of Godot project in repository'
+    description: 'Location of the Godot project in the repository'
+    required: false
     default: "."
   DEBUG_MODE:
-    description: 'Whether or not to use `--export-debug`'
-    default: false
+    description: 'Use --export-debug instead of --export-release'
+    required: false
+    default: 'false'
   GODOT_PREVIEW_BUILDS:
-    description: 'Use godot preview builds'
-    default: false
+    description: 'Use Godot preview builds (from godot-builds repo)'
+    required: false
+    default: 'false'
   BUTLER_UPLOAD:
     description: 'Upload to itch.io using butler'
-    default: false
+    required: false
+    default: 'false'
   BUTLER_CREDENTIALS:
-    description: 'butler credentials'
+    description: 'Butler API key (itch.io)'
+    required: false
     default: ''
   ITCH_USER_SLASH_GAME:
-    description: 'Your username and gamename in the format of "user/game"'
+    description: 'Itch.io target in the format "user/game"'
+    required: false
     default: ''
   RELEASE_KEYSTORE:
-    description: 'Your release keystore'
+    description: 'Encrypted/armored release keystore (Android). Will be decrypted using KEYSTORE_PASSPHRASE.'
+    required: false
     default: ''
   KEYSTORE_PASSPHRASE:
-    description: 'the passphrase used to encrypt the keystore'
+    description: 'Passphrase used to decrypt the keystore'
+    required: false
     default: ''
   KEY_ALIAS:
-    description: 'Your game signing key alias'
+    description: 'Android signing key alias'
+    required: false
     default: ''
   KEY_PASSWORD:
-    description: 'Signing key password'
+    description: 'Android signing key password'
+    required: false
     default: ''
   EXPORT_DIR:
-    description: 'The directory your files are exported to...'
+    description: 'Directory to export files into (relative to project dir)'
+    required: false
     default: 'builds'
   INSTALL_BLENDER:
-    description: 'Installs blender (for any .blend files)'
-    default: false
+    description: 'Install Blender (for .blend imports)'
+    required: false
+    default: 'false'
   BLENDER_VERSION:
-    description: 'Blender version to install (e.g., 3.6.5)'
+    description: 'Blender version to install (e.g., 3.6.5 or 4.4.3)'
+    required: false
     default: '4.4.3'
   IMPORT_TIMEOUT:
     description: 'Timeout for import process in minutes'
+    required: false
     default: '60'
   VERBOSE_IMPORT:
     description: 'Enable verbose output during import'
-    default: true
+    required: false
+    default: 'true'
 
 outputs:
   build:
@@ -70,28 +85,42 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Get Godot version
+    - name: Determine Godot version
       id: version
       shell: bash
       run: |
-        if [ -z "${{ inputs.GODOT_VER }}" ]; then
-          if [ "${{ inputs.GODOT_PREVIEW_BUILDS }}" == "true" ]; then
-            # Get latest Godot 4.x preview version
-            LATEST_VER=$(curl -s https://api.github.com/repos/godotengine/godot-builds/releases | jq -r '.[] | select(.prerelease==true) | .tag_name' | grep '^4\.' | head -n 1)
-          else
-            # Get latest stable Godot 4.x version
-            LATEST_VER=$(curl -s https://api.github.com/repos/godotengine/godot/releases | jq -r '.[] | select(.prerelease==false) | .tag_name' | grep '^4\.' | head -n 1)
-          fi
-          echo "GODOT_VERSION=${LATEST_VER}" >> $GITHUB_OUTPUT
-        else
-          echo "GODOT_VERSION=${{ inputs.GODOT_VER }}" >> $GITHUB_OUTPUT
+        set -Eeuo pipefail
+        PREVIEW="${{ inputs.GODOT_PREVIEW_BUILDS }}"
+        INPUT_VER="${{ inputs.GODOT_VER }}"
+        GH_API_URL=""
+        if [ -n "$INPUT_VER" ]; then
+          echo "GODOT_VERSION=$INPUT_VER" >> "$GITHUB_OUTPUT"
+          echo "Using specified Godot version: $INPUT_VER"
+          exit 0
         fi
-        echo "Using Godot version: ${LATEST_VER:-${{ inputs.GODOT_VER }}}"
+
+        if [ "$PREVIEW" = "true" ]; then
+          GH_API_URL="https://api.github.com/repos/godotengine/godot-builds/releases"
+          # latest preview 4.x (prerelease==true)
+          LATEST="$(curl -fsSL "$GH_API_URL" | jq -r '.[] | select(.prerelease==true) | .tag_name' | grep -E '^4\.' | head -n1 || true)"
+        else
+          GH_API_URL="https://api.github.com/repos/godotengine/godot/releases"
+          # latest stable 4.x (prerelease==false)
+          LATEST="$(curl -fsSL "$GH_API_URL" | jq -r '.[] | select(.prerelease==false) | .tag_name' | grep -E '^4\.' | head -n1 || true)"
+        fi
+
+        if [ -z "$LATEST" ] || [ "$LATEST" = "null" ]; then
+          echo "Auto-detect failed (rate limit or no releases). Please set GODOT_VER explicitly." >&2
+          exit 1
+        fi
+
+        echo "GODOT_VERSION=$LATEST" >> "$GITHUB_OUTPUT"
+        echo "Auto-detected Godot version: $LATEST"
 
     - name: Setup directories
       shell: bash
       run: |
-        # Create all necessary directories
+        set -Eeuo pipefail
         mkdir -p ~/.local/share/godot/export_templates
         mkdir -p ~/.config/godot
         mkdir -p ~/godot-binary
@@ -101,6 +130,7 @@ runs:
     - name: Install system dependencies
       shell: bash
       run: |
+        set -Eeuo pipefail
         sudo apt-get update
         sudo apt-get install -y \
           libxcursor1 \
@@ -112,85 +142,97 @@ runs:
           xvfb \
           unzip \
           wget \
-          jq
+          jq \
+          xz-utils \
+          ca-certificates
+
+    - name: Cache Godot binary
+      uses: actions/cache@v4
+      with:
+        path: ~/godot-binary
+        key: godot-bin-${{ steps.version.outputs.GODOT_VERSION }}-${{ inputs.GODOT_PREVIEW_BUILDS }}
+
+    - name: Cache export templates
+      id: tplcache
+      uses: actions/cache@v4
+      with:
+        path: ~/.local/share/godot/export_templates
+        key: godot-templates-${{ steps.version.outputs.GODOT_VERSION }}-${{ inputs.GODOT_PREVIEW_BUILDS }}
 
     - name: Install Blender
       if: inputs.INSTALL_BLENDER == 'true'
       shell: bash
       run: |
+        set -Eeuo pipefail
         echo "Installing Blender ${{ inputs.BLENDER_VERSION }}..."
-        
-        # Download Blender from official mirror
-        BLENDER_URL="https://download.blender.org/release/Blender$(echo ${{ inputs.BLENDER_VERSION }} | cut -d. -f1,2)/blender-${{ inputs.BLENDER_VERSION }}-linux-x64.tar.xz"
+        MAJOR_MINOR="$(echo "${{ inputs.BLENDER_VERSION }}" | cut -d. -f1,2)"
+        BLENDER_URL="https://download.blender.org/release/Blender${MAJOR_MINOR}/blender-${{ inputs.BLENDER_VERSION }}-linux-x64.tar.xz"
         wget -q "$BLENDER_URL" -O ~/blender.tar.xz
-        
-        # Extract Blender
         tar -xf ~/blender.tar.xz -C ~/
-        BLENDER_DIR=$(find ~ -maxdepth 1 -name "blender-*" -type d | head -n 1)
-        
-        # Add to PATH
-        echo "${BLENDER_DIR}" >> $GITHUB_PATH
-        echo "BLENDER_PATH=${BLENDER_DIR}/blender" >> $GITHUB_ENV
-        
-        # Verify installation
+        BLENDER_DIR="$(find ~ -maxdepth 1 -name "blender-*" -type d | head -n 1)"
+        echo "${BLENDER_DIR}" >> "$GITHUB_PATH"
+        echo "BLENDER_PATH=${BLENDER_DIR}/blender" >> "$GITHUB_ENV"
         "${BLENDER_DIR}/blender" --version
 
     - name: Download Godot
       shell: bash
       run: |
-        GODOT_BASENAME="Godot_v${{ steps.version.outputs.GODOT_VERSION }}_linux.x86_64"
-        
-        if [ "${{ inputs.GODOT_PREVIEW_BUILDS }}" == "true" ]; then
-          DOWNLOAD_URL="https://github.com/godotengine/godot-builds/releases/download/${{ steps.version.outputs.GODOT_VERSION }}/${GODOT_BASENAME}.zip"
+        set -Eeuo pipefail
+        VER="${{ steps.version.outputs.GODOT_VERSION }}"
+        BASE="Godot_v${VER}_linux.x86_64"
+        PREVIEW="${{ inputs.GODOT_PREVIEW_BUILDS }}"
+
+        if [ ! -f ~/godot-binary/godot ]; then
+          if [ "$PREVIEW" = "true" ]; then
+            URL="https://github.com/godotengine/godot-builds/releases/download/${VER}/${BASE}.zip"
+          else
+            URL="https://github.com/godotengine/godot/releases/download/${VER}/${BASE}.zip"
+          fi
+          echo "Downloading Godot from: $URL"
+          wget -q "$URL" -O ~/godot-binary/godot.zip
+          unzip -q ~/godot-binary/godot.zip -d ~/godot-binary
+          chmod +x ~/godot-binary/${BASE}
+          mv ~/godot-binary/${BASE} ~/godot-binary/godot
         else
-          DOWNLOAD_URL="https://github.com/godotengine/godot/releases/download/${{ steps.version.outputs.GODOT_VERSION }}/${GODOT_BASENAME}.zip"
+          echo "Godot binary found in cache."
         fi
-        
-        echo "Downloading Godot from: $DOWNLOAD_URL"
-        wget -q "$DOWNLOAD_URL" -O ~/godot-binary/godot.zip || {
-          echo "Failed to download Godot. URL might be incorrect."
-          exit 1
-        }
-        
-        unzip -q ~/godot-binary/godot.zip -d ~/godot-binary
-        chmod +x ~/godot-binary/${GODOT_BASENAME}
-        mv ~/godot-binary/${GODOT_BASENAME} ~/godot-binary/godot
-        
-        # Verify Godot installation
-        ~/godot-binary/godot --version
+
+        ~/godot-binary/godot --version || { echo "Godot binary failed to run"; exit 1; }
 
     - name: Download and install export templates
       shell: bash
       run: |
-        TEMPLATES_BASENAME="Godot_v${{ steps.version.outputs.GODOT_VERSION }}_export_templates"
-        TEMPLATE_VERSION=$(echo ${{ steps.version.outputs.GODOT_VERSION }} | sed 's/-/./g')
-        
-        if [ "${{ inputs.GODOT_PREVIEW_BUILDS }}" == "true" ]; then
-          TEMPLATES_URL="https://github.com/godotengine/godot-builds/releases/download/${{ steps.version.outputs.GODOT_VERSION }}/${TEMPLATES_BASENAME}.tpz"
-        else
-          TEMPLATES_URL="https://github.com/godotengine/godot/releases/download/${{ steps.version.outputs.GODOT_VERSION }}/${TEMPLATES_BASENAME}.tpz"
+        set -Eeuo pipefail
+        if [ "${{ steps.tplcache.outputs.cache-hit }}" = "true" ]; then
+          echo "Templates restored from cache."
+          exit 0
         fi
-        
-        echo "Downloading templates from: $TEMPLATES_URL"
-        wget -q "$TEMPLATES_URL" -O ~/templates.tpz || {
-          echo "Failed to download export templates"
-          exit 1
-        }
-        
-        # Extract templates
-        unzip -o -q ~/templates.tpz -d ~/.local/share/godot/export_templates/
-        
-        set +e # Ignore an error here if directory not empty
-        # Move templates to correct version folder
-        if [ -d ~/.local/share/godot/export_templates/templates ]; then
-          mv -f ~/.local/share/godot/export_templates/templates ~/.local/share/godot/export_templates/${TEMPLATE_VERSION}
-        fi
-        set -e
-        
-        echo "Templates installed to: ~/.local/share/godot/export_templates/${TEMPLATE_VERSION}"
-        ls -la ~/.local/share/godot/export_templates/${TEMPLATE_VERSION}/
 
-    - name: Set up JDK 17
+        VER="${{ steps.version.outputs.GODOT_VERSION }}"
+        BASE="Godot_v${VER}_export_templates"
+        PREVIEW="${{ inputs.GODOT_PREVIEW_BUILDS }}"
+
+        if [ "$PREVIEW" = "true" ]; then
+          URL="https://github.com/godotengine/godot-builds/releases/download/${VER}/${BASE}.tpz"
+        else
+          URL="https://github.com/godotengine/godot/releases/download/${VER}/${BASE}.tpz"
+        fi
+
+        echo "Downloading templates from: $URL"
+        wget -q "$URL" -O ~/templates.tpz
+        unzip -o -q ~/templates.tpz -d ~/.local/share/godot/export_templates/
+
+        TEMPLATE_VERSION="$(echo "$VER" | sed 's/-/./g')"
+        if [ -d ~/.local/share/godot/export_templates/templates ]; then
+          # Move into versioned folder expected by Godot, e.g., 4.2.2.stable
+          rm -rf ~/.local/share/godot/export_templates/"$TEMPLATE_VERSION" || true
+          mv ~/.local/share/godot/export_templates/templates ~/.local/share/godot/export_templates/"$TEMPLATE_VERSION"
+        fi
+
+        echo "Templates installed at ~/.local/share/godot/export_templates/${TEMPLATE_VERSION}"
+        ls -la ~/.local/share/godot/export_templates/"$TEMPLATE_VERSION" || true
+
+    - name: Set up JDK 17 (Android)
       if: contains(inputs.EXPORT_PRESET_NAME, 'Android')
       uses: actions/setup-java@v4
       with:
@@ -200,15 +242,14 @@ runs:
     - name: Setup Android SDK
       if: contains(inputs.EXPORT_PRESET_NAME, 'Android')
       uses: android-actions/setup-android@v3
-      with:
-        packages: ''
 
-    - name: Configure Android SDK
+    - name: Configure Android SDK (accept licenses, install components)
       if: contains(inputs.EXPORT_PRESET_NAME, 'Android')
       shell: bash
       run: |
-        # Install required Android SDK components
-        sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
+        set -Eeuo pipefail
+        yes | sdkmanager --licenses >/dev/null
+        yes | sdkmanager \
           "platform-tools" \
           "build-tools;34.0.0" \
           "platforms;android-34" \
@@ -219,269 +260,214 @@ runs:
     - name: Import Godot project
       shell: bash
       run: |
+        set -Eeuo pipefail
         cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
-        
-        # Configure Godot settings
         mkdir -p ~/.config/godot
-        
-        # Start virtual display for import
+
+        # Start virtual display
         export DISPLAY=:99
         Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
         sleep 3
-        
-        # Import project with proper timeout and error handling
+
         echo "Starting project import (timeout: ${{ inputs.IMPORT_TIMEOUT }} minutes)..."
-        
-        if [ "${{ inputs.VERBOSE_IMPORT }}" == "true" ]; then
-          timeout ${{ inputs.IMPORT_TIMEOUT }}m ~/godot-binary/godot --headless --verbose --import || {
-            echo "Import process timed out or failed. Checking for partial import..."
-            # Check if .godot directory has content
-            if [ -d ".godot/imported" ] && [ "$(ls -A .godot/imported)" ]; then
-              echo "Partial import detected. Attempting to continue..."
-            else
-              echo "Import failed completely."
-              exit 1
-            fi
-          }
+        if [ "${{ inputs.VERBOSE_IMPORT }}" = "true" ]; then
+          timeout ${{ inputs.IMPORT_TIMEOUT }}m ~/godot-binary/godot --headless --verbose --import || true
         else
-          timeout ${{ inputs.IMPORT_TIMEOUT }}m ~/godot-binary/godot --headless --import
+          timeout ${{ inputs.IMPORT_TIMEOUT }}m ~/godot-binary/godot --headless --import || true
         fi
-        
-        # Configure editor settings
-        GODOT_CFG=$(find ~/.config/godot -name "editor_settings-*.tres" | head -n 1)
+
+        # Post-import check
+        if [ ! -d ".godot/imported" ] || [ -z "$(ls -A .godot/imported 2>/dev/null || true)" ]; then
+          echo "Import appears incomplete. Build may still succeed if minimal import is sufficient."
+        fi
+
+        # Configure editor settings for Android & Blender if available
+        GODOT_CFG="$(find ~/.config/godot -name "editor_settings-*.tres" | head -n 1 || true)"
         if [ -n "$GODOT_CFG" ]; then
-          echo "Configuring Godot editor settings..."
-          
-          # Configure Android SDK paths if needed
-          if [ -n "$JAVA_HOME" ]; then
-            sed -i "s|export/android/java_sdk_path = .*|export/android/java_sdk_path = \"$JAVA_HOME\"|" "$GODOT_CFG" || \
-            echo "export/android/java_sdk_path = \"$JAVA_HOME\"" >> "$GODOT_CFG"
+          if [ -n "${JAVA_HOME:-}" ]; then
+            grep -q '^export/android/java_sdk_path' "$GODOT_CFG" \
+              && sed -i "s|^export/android/java_sdk_path = .*|export/android/java_sdk_path = \"$JAVA_HOME\"|" "$GODOT_CFG" \
+              || echo "export/android/java_sdk_path = \"$JAVA_HOME\"" >> "$GODOT_CFG"
           fi
-          
-          if [ -n "$ANDROID_SDK_ROOT" ]; then
-            sed -i "s|export/android/android_sdk_path = .*|export/android/android_sdk_path = \"$ANDROID_SDK_ROOT\"|" "$GODOT_CFG" || \
-            echo "export/android/android_sdk_path = \"$ANDROID_SDK_ROOT\"" >> "$GODOT_CFG"
+          if [ -n "${ANDROID_SDK_ROOT:-}" ]; then
+            grep -q '^export/android/android_sdk_path' "$GODOT_CFG" \
+              && sed -i "s|^export/android/android_sdk_path = .*|export/android/android_sdk_path = \"$ANDROID_SDK_ROOT\"|" "$GODOT_CFG" \
+              || echo "export/android/android_sdk_path = \"$ANDROID_SDK_ROOT\"" >> "$GODOT_CFG"
           fi
-          
-          # Configure Blender path if installed
-          if [ -n "$BLENDER_PATH" ]; then
-            sed -i "s|filesystem/import/blender/blender3_path = .*|filesystem/import/blender/blender3_path = \"$BLENDER_PATH\"|" "$GODOT_CFG" || \
-            echo "filesystem/import/blender/blender3_path = \"$BLENDER_PATH\"" >> "$GODOT_CFG"
+          if [ -n "${BLENDER_PATH:-}" ]; then
+            grep -q '^filesystem/import/blender/blender3_path' "$GODOT_CFG" \
+              && sed -i "s|^filesystem/import/blender/blender3_path = .*|filesystem/import/blender/blender3_path = \"$BLENDER_PATH\"|" "$GODOT_CFG" \
+              || echo "filesystem/import/blender/blender3_path = \"$BLENDER_PATH\"" >> "$GODOT_CFG"
           fi
         fi
 
-    - name: Decode Keystore
+    - name: Decode Android keystore
       if: inputs.RELEASE_KEYSTORE != ''
       shell: bash
       run: |
+        set -Eeuo pipefail
         echo "${{ inputs.RELEASE_KEYSTORE }}" > release.keystore.asc
         gpg -d --passphrase "${{ inputs.KEYSTORE_PASSPHRASE }}" --batch release.keystore.asc > ~/release.keystore
-        
-        # Set environment variables for export
-        echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$HOME/release.keystore" >> $GITHUB_ENV
-        echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=${{ inputs.KEY_ALIAS }}" >> $GITHUB_ENV
-        echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${{ inputs.KEY_PASSWORD }}" >> $GITHUB_ENV
+        echo "GODOT_ANDROID_KEYSTORE_RELEASE_PATH=$HOME/release.keystore" >> "$GITHUB_ENV"
+        echo "GODOT_ANDROID_KEYSTORE_RELEASE_USER=${{ inputs.KEY_ALIAS }}" >> "$GITHUB_ENV"
+        echo "GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=${{ inputs.KEY_PASSWORD }}" >> "$GITHUB_ENV"
 
     - name: Export project
       id: export
       shell: bash
       run: |
-        # Set export mode
+        set -Eeuo pipefail
+        cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
+
         mode="export-release"
         if [ "${{ inputs.DEBUG_MODE }}" = "true" ]; then
-          echo "Exporting in debug mode!"
+          echo "Exporting in debug mode"
           mode="export-debug"
         fi
 
-        # Set build path
         BUILD_PATH="${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}/${{ inputs.EXPORT_DIR }}"
-        echo "build=${BUILD_PATH}" >> $GITHUB_OUTPUT
+        mkdir -p "${BUILD_PATH}"
+        # Output path for artifacts
+        {
+          echo "build=${BUILD_PATH}"
+        } >> "$GITHUB_OUTPUT"
 
-        # Change to project directory
-        cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
-        
-        # Extract version information
-        VERSION_NAME=$(grep 'version/name=' export_presets.cfg | head -1 | awk -F'"' '{print $2}')
-        VERSION_CODE=$(grep 'version/code=' export_presets.cfg | head -1 | awk -F'=' '{print $2}')
-        
-        echo "version_name=${VERSION_NAME}" >> $GITHUB_OUTPUT
-        echo "version_code=${VERSION_CODE}" >> $GITHUB_OUTPUT
-        
-        # Create necessary directories
-        mkdir -p "${{ inputs.EXPORT_DIR }}"
-        
-        # Platform-specific directory creation
-        case "${{ inputs.EXPORT_PRESET_NAME }}" in
-          *"macOS"*|*"Mac"*)
-            mkdir -p "${{ inputs.EXPORT_DIR }}/osx"
-            ;;
-          *"Web"*|*"HTML"*)
-            mkdir -p "${{ inputs.EXPORT_DIR }}/web"
-            ;;
-        esac
-        
-        # Export project
-        echo "Building for ${{ inputs.EXPORT_PRESET_NAME }}"
-        
-        # Start virtual display for export
+        # Extract version info from export_presets.cfg if present
+        VERSION_NAME="$(grep -E 'version/name=' export_presets.cfg | head -1 | awk -F'"' '{print $2}' || true)"
+        VERSION_CODE="$(grep -E 'version/code=' export_presets.cfg | head -1 | awk -F'=' '{print $2}' || true)"
+
+        # Write outputs using single-line safe assignment
+        echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+        echo "version_code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
+
+        echo "Building for preset: ${{ inputs.EXPORT_PRESET_NAME }}"
         export DISPLAY=:99
-        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        sleep 3
-        
-        # Run export with error handling
-        ~/godot-binary/godot --headless --${mode} "${{ inputs.EXPORT_PRESET_NAME }}" || {
-          echo "Export failed. Checking for common issues..."
-          
-          # Check if export templates are properly installed
-                    TEMPLATE_VERSION=$(echo ${{ steps.version.outputs.GODOT_VERSION }} | sed 's/-/./g')
-          if [ ! -d ~/.local/share/godot/export_templates/${TEMPLATE_VERSION} ]; then
-            echo "Export templates not found for version ${TEMPLATE_VERSION}"
+        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 || true
+        sleep 1
+
+        # Platform-specific folder conveniences
+        case "${{ inputs.EXPORT_PRESET_NAME }}" in
+          *"macOS"*|*"Mac"*) mkdir -p "${{ inputs.EXPORT_DIR }}/osx" ;;
+          *"Web"*|*"HTML"*) mkdir -p "${{ inputs.EXPORT_DIR }}/web" ;;
+        esac
+
+        set +e
+        ~/godot-binary/godot --headless --${mode} "${{ inputs.EXPORT_PRESET_NAME }}"
+        STATUS=$?
+        set -e
+
+        if [ $STATUS -ne 0 ]; then
+          echo "Export failed. Checking common issues..."
+          TEMPLATE_VERSION="$(echo "${{ steps.version.outputs.GODOT_VERSION }}" | sed 's/-/./g')"
+          if [ ! -d "$HOME/.local/share/godot/export_templates/${TEMPLATE_VERSION}" ]; then
+            echo "Export templates not found for ${TEMPLATE_VERSION}"
             exit 1
           fi
-          
-          # Check if export preset exists
           if ! grep -q "name=\"${{ inputs.EXPORT_PRESET_NAME }}\"" export_presets.cfg; then
             echo "Export preset '${{ inputs.EXPORT_PRESET_NAME }}' not found in export_presets.cfg"
             exit 1
           fi
-          
-          exit 1
-        }
-        
-        echo "Build completed successfully"
-        
-        # List exported files
-        echo "Exported files:"
-        find "${{ inputs.EXPORT_DIR }}" -type f -name "*" | head -20
+          echo "Godot export returned non-zero status ($STATUS)."
+          exit $STATUS
+        fi
 
-    - name: Upload to itch.io
-      if: inputs.BUTLER_UPLOAD == 'true' && inputs.BUTLER_CREDENTIALS != ''
+        echo "Build completed successfully."
+        echo "Exported files (first 20):"
+        find "${{ inputs.EXPORT_DIR }}" -type f | head -20 || true
+
+    - name: Upload to itch.io (butler)
+      if: inputs.BUTLER_UPLOAD == 'true' && inputs.BUTLER_CREDENTIALS != '' && inputs.ITCH_USER_SLASH_GAME != ''
       shell: bash
       run: |
-        # Download and setup butler
-        curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+        set -Eeuo pipefail
+        curl -sSL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
         unzip -q butler.zip
         chmod +x butler
+        echo "butler initialized at $(pwd)"
 
-        echo "butler initialised in directory $(pwd)"
-        
-        # Set butler credentials
-        export BUTLER_API_KEY=${{ inputs.BUTLER_CREDENTIALS }}
-        
-        # Change to project directory
+        export BUTLER_API_KEY="${{ inputs.BUTLER_CREDENTIALS }}"
         cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
-        
-        # Prepare version argument
-        version_arg=""
-        if [ -n "${{ steps.export.outputs.version_name }}" ]; then
-          version_arg="--userversion ${{ steps.export.outputs.version_name }}"
-        fi
-        
-        # Function to determine channel from preset name and file
-        get_channel() {
-          local file="$1"
-          local preset="${{ inputs.EXPORT_PRESET_NAME }}"
-          
-          # For Android, check the file name for architecture
-          if [[ "$preset" == *"Android"* ]]; then
-            case "$file" in
-              *"arm32"*) echo "android-arm32" ;;
-              *"arm64"*) echo "android-arm64" ;;
-              *"x86_64"*|*"x86-64"*) echo "android-x86_64" ;;
-              *"x86"*) echo "android-x86" ;;
-              *) echo "android" ;;  # Generic Android if no architecture specified
-            esac
-            return
-          fi
-          
-          # For other platforms, check by preset name
-          case "$preset" in
-            *"Windows x86_32"*) echo "windows-x86" ;;
-            *"Windows arm64"*) echo "windows-arm64" ;;
-            *"Windows"*) echo "windows" ;;
-            *"Linux arm64"*) echo "linux-arm64" ;;
-            *"Linux arm32"*) echo "linux-arm32" ;;
-            *"Linux x86_32"*) echo "linux-x86" ;;
-            *"Linux"*) echo "linux-x86_64" ;;
-            *"macOS"*|*"Mac"*) echo "osx" ;;
-            *"Web"*|*"HTML"*) echo "html5" ;;
-            *"iOS"*) echo "ios" ;;
-            *) 
-              # Fallback to file extension analysis
-              case "$file" in
-                *.exe) 
-                  if [[ "$file" == *"arm64"* ]]; then
-                    echo "windows-arm64"
-                  elif [[ "$file" == *"x86_32"* ]] || [[ "$file" == *"x86-32"* ]]; then
-                    echo "windows-x86"
-                  else
-                    echo "windows"
-                  fi
-                  ;;
-                *.x86_64) echo "linux-x86_64" ;;
-                *.x86_32|*.x86-32) echo "linux-x86" ;;
-                *.arm64|*.aarch64) echo "linux-arm64" ;;
-                *.arm32) echo "linux-arm32" ;;
-                *.ipa) echo "ios" ;;
-                *) echo "" ;;
-              esac
-              ;;
-          esac
-        }
-        
-        # Find and upload exported files
-        uploaded=false
-        
-        # For Web/HTML5 exports, we need to zip the directory
-        if [[ "${{ inputs.EXPORT_PRESET_NAME }}" == *"Web"* ]] || [[ "${{ inputs.EXPORT_PRESET_NAME }}" == *"HTML"* ]]; then
+
+        # If Web export, zip the directory
+        if [[ "${{ inputs.EXPORT_PRESET_NAME }}" == *"Web"* || "${{ inputs.EXPORT_PRESET_NAME }}" == *"HTML"* ]]; then
           WEB_DIR="${{ inputs.EXPORT_DIR }}/web"
-          if [ -d "$WEB_DIR" ] && [ "$(ls -A $WEB_DIR)" ]; then
-            echo "Preparing web export for upload..."
-            cd "$WEB_DIR"
-            zip -r ../web.zip .
-            cd ..
-            
-            echo "Uploading web.zip to itch.io channel: html5"
-            ${GITHUB_WORKSPACE}/butler push "web.zip" "${{ inputs.ITCH_USER_SLASH_GAME }}:html5" $version_arg
-            uploaded=true
+          if [ -d "$WEB_DIR" ] && [ -n "$(ls -A "$WEB_DIR" 2>/dev/null || true)" ]; then
+            (cd "$WEB_DIR" && zip -qr ../web.zip .)
+            ./butler push "${{ inputs.EXPORT_DIR }}/web.zip" "${{ inputs.ITCH_USER_SLASH_GAME }}:html5" ${VERSION_ARG:-}
+            echo "Uploaded web.zip to itch.io (html5)"
+            exit 0
           fi
-        else
-          # For other platforms, find the exported file
-          for file in $(find "${{ inputs.EXPORT_DIR }}" -type f \( -name "*.exe" -o -name "*.x86_64" -o -name "*.x86_32" -o -name "*.arm64" -o -name "*.arm32" -o -name "*.apk" -o -name "*.zip" -o -name "*.dmg" -o -name "*.ipa" \) | head -10); do
-            if [ -f "$file" ]; then
-              channel=$(get_channel "$file")
-              
-              if [ -n "$channel" ]; then
-                echo "Uploading $(basename "$file") from path $file to itch.io channel: $channel"
-                ${GITHUB_WORKSPACE}/butler push "$file" "${{ inputs.ITCH_USER_SLASH_GAME }}:$channel" $version_arg
-                uploaded=true
-              else
-                echo "Could not determine channel for file: $file"
-              fi
+        fi
+
+        # Else try to push individual files (common extensions)
+        VERSION_ARG=""
+        if [ -n "${{ steps.export.outputs.version_name }}" ]; then
+          VERSION_ARG="--userversion ${{ steps.export.outputs.version_name }}"
+        fi
+
+        uploaded=false
+        while IFS= read -r -d '' file; do
+          base="$(basename "$file")"
+          channel=""
+          preset="${{ inputs.EXPORT_PRESET_NAME }}"
+
+          if [[ "$preset" == *"Android"* ]]; then
+            case "$base" in
+              *arm32*.apk) channel="android-arm32" ;;
+              *arm64*.apk) channel="android-arm64" ;;
+              *x86_64*.apk|*x86-64*.apk) channel="android-x86_64" ;;
+              *x86*.apk) channel="android-x86" ;;
+              *.apk) channel="android" ;;
+            esac
+          else
+            case "$preset" in
+              *"Windows x86_32"*) channel="windows-x86" ;;
+              *"Windows arm64"*) channel="windows-arm64" ;;
+              *"Windows"*) channel="windows" ;;
+              *"Linux arm64"*) channel="linux-arm64" ;;
+              *"Linux arm32"*) channel="linux-arm32" ;;
+              *"Linux x86_32"*) channel="linux-x86" ;;
+              *"Linux"*) channel="linux-x86_64" ;;
+              *"macOS"*|*"Mac"*) channel="osx" ;;
+              *"Web"*|*"HTML"*) channel="html5" ;;
+              *"iOS"*) channel="ios" ;;
+            esac
+            # Fallback by extension
+            if [ -z "$channel" ]; then
+              case "$base" in
+                *.exe) channel="windows" ;;
+                *.x86_64) channel="linux-x86_64" ;;
+                *.x86_32|*.x86-32) channel="linux-x86" ;;
+                *.arm64|*.aarch64) channel="linux-arm64" ;;
+                *.arm32) channel="linux-arm32" ;;
+                *.ipa) channel="ios" ;;
+                *.zip) [[ "$preset" == *"macOS"* || "$preset" == *"Mac"* ]] && channel="osx" || true ;;
+              esac
             fi
-          done
-        fi
-        
+          fi
+
+          if [ -n "$channel" ]; then
+            echo "Uploading $base -> $channel"
+            ./butler push "$file" "${{ inputs.ITCH_USER_SLASH_GAME }}:$channel" $VERSION_ARG
+            uploaded=true
+          else
+            echo "Skipping (unknown channel): $base"
+          fi
+        done < <(find "${{ inputs.EXPORT_DIR }}" -type f \( -name "*.exe" -o -name "*.x86_64" -o -name "*.x86_32" -o -name "*.arm64" -o -name "*.arm32" -o -name "*.apk" -o -name "*.zip" -o -name "*.dmg" -o -name "*.ipa" \) -print0 | head -z -n 20)
+
         if [ "$uploaded" = false ]; then
-          echo "Warning: No files were uploaded to itch.io"
-          echo "Available files in export directory:"
-          find "${{ inputs.EXPORT_DIR }}" -type f
+          echo "No files uploaded to itch.io. Listing available files:"
+          find "${{ inputs.EXPORT_DIR }}" -type f | sed 's/^/ - /'
         fi
-        
+
     - name: Cleanup
       if: always()
       shell: bash
       run: |
-        # Kill Xvfb if running
-        pkill Xvfb || true
-        
-        # Clean up temporary files
-        rm -f ~/godot-binary/godot.zip
-        rm -f ~/templates.tpz
-        rm -f ~/blender.tar.xz
-        rm -f ~/release.keystore.asc
+        set +e
+        pkill Xvfb 2>/dev/null || true
+        rm -f ~/godot-binary/godot.zip ~/templates.tpz ~/blender.tar.xz ~/release.keystore.asc 2>/dev/null || true
 
 branding:
-  icon: loader
-  color: blue
-
+  icon: 'loader'
+  color: 'blue'

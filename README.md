@@ -1,19 +1,19 @@
 # Godot Build Action
 
-This GitHub Action automates building Godot projects for multiple platforms. It uses the official Godot binaries and export templates directly from Godot's releases.
+This GitHub Action automates building Godot projects for multiple platforms using official Godot binaries and export templates.
 
-## Features
+## Highlights
 
-- Uses official Godot builds
-- Automatically uses the recommended stable version from godotengine.org
-- Supports custom Godot versions
-- Debug mode support
-- Custom project directory support
-- Exports using your project's export presets
+- Uses official Godot 4.x releases (or preview builds on demand)
+- Auto-detects latest stable 4.x when GODOT_VER isn’t provided
+- Android export support (SDK/NDK/JDK setup)
+- Optional Blender install for .blend imports
+- Headless import with Xvfb and configurable timeout
+- Optional itch.io upload via butler
+- Caches Godot binary and export templates for faster builds
+- Outputs version name/code detected from export_presets.cfg
 
-## Usage
-
-### Basic Example
+## Quick start
 
 ```yaml
 name: Build Game
@@ -29,20 +29,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Build
-        uses: mlm-games/build-godot-action@v1
+
+      - name: Build (Windows)
+        uses: mlm-games/godot-build-action@v1
         with:
-          BINARY_NAME: my-game
-          EXPORT_PRESET_NAME: windows
+          EXPORT_PRESET_NAME: "Windows Desktop"
 ```
 
-### Full Example with All Options
+## Full example (matrix + Android + caching + artifacts)
 
 ```yaml
 name: Build Game
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
   pull_request:
@@ -52,93 +52,88 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        platform: [windows, linux, mac]
+        preset: ["Windows Desktop", "Linux/X11", "macOS", "Android arm64"]
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Build
-        uses: mlm-games/build-godot-action@v1
+        id: build
+        uses: mlm-games/godot-build-action@v1
         with:
-          BINARY_NAME: my-game
-          EXPORT_PRESET_NAME: ${{ matrix.platform }}
-          GODOT_VER: 4.2.1  # Optional: specific version
-          PROJECT_DIR: game  # Optional: if project is in subdirectory
-          DEBUG_MODE: true   # Optional: for debug builds
-          
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+          EXPORT_PRESET_NAME: ${{ matrix.preset }}
+          PROJECT_DIR: game                # if your project is in a subfolder
+          GODOT_VER: ""                    # auto-detect latest stable 4.x
+          DEBUG_MODE: "false"              # or "true"
+          GODOT_PREVIEW_BUILDS: "false"    # set "true" to use preview builds
+          EXPORT_DIR: builds
+          INSTALL_BLENDER: "false"         # or "true" if your project has .blend files
+          BLENDER_VERSION: "4.4.3"
+          IMPORT_TIMEOUT: "60"
+          VERBOSE_IMPORT: "true"
+          BUTLER_UPLOAD: "false"           # set "true" to upload to itch
+          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_USER_SLASH_GAME: yourname/yourgame
+
+      - name: Upload builds
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform }}-build
-          path: ${{ github.workspace }}/game/builds/
+          name: ${{ matrix.preset }}-build
+          path: ${{ steps.build.outputs.build }}
 ```
 
 ## Inputs
 
 | Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `BINARY_NAME` | Name of the exported binary | Yes | - |
-| `EXPORT_PRESET_NAME` | Name of the preset in `export_presets.cfg` to use | Yes | - |
-| `GODOT_VER` | Specific Godot version to use | No | Latest recommended version |
-| `PROJECT_DIR` | Location of Godot project in repository | No | "." |
-| `DEBUG_MODE` | Whether to use `--export-debug` | No | false |
-| `BUTLER_UPLOAD` | Whether to upload to itch.io | No | false |
-| `BUTLER_UPLOAD_NAME` | The platform to upload for in itch.io | No | 'windows' |
-| `RELEASE_KEYSTORE` | Your release keystore | No | '' |
-| `KEYSTORE_PASSPHRASE` | The passphrase used to encrypt the keystore | No | '' |
-| `KEY_ALIAS` | Your game signing key alias | No | '' |
-| `KEY_PASSPHRASE` | Signing key password | No | '' |
+|------|-------------|----------|---------|
+| `EXPORT_PRESET_NAME` | Name of the preset in `export_presets.cfg` to use (e.g., “Windows Desktop”, “Linux/X11”, “macOS”, “Android arm64”) | Yes | — |
+| `GODOT_VER` | Godot version (e.g., `4.2.2-stable`). If empty, the latest stable 4.x is used | No | `""` |
+| `PROJECT_DIR` | Path to the Godot project in the repo | No | `.` |
+| `DEBUG_MODE` | Use `--export-debug` instead of `--export-release` | No | `false` |
+| `GODOT_PREVIEW_BUILDS` | Use preview builds from `godot-builds` | No | `false` |
+| `EXPORT_DIR` | Directory where builds are exported | No | `builds` |
+| `INSTALL_BLENDER` | Install Blender (for .blend imports) | No | `false` |
+| `BLENDER_VERSION` | Blender version to install | No | `4.4.3` |
+| `IMPORT_TIMEOUT` | Import timeout in minutes | No | `60` |
+| `VERBOSE_IMPORT` | Verbose import logs | No | `true` |
+| `BUTLER_UPLOAD` | Upload built files to itch.io using butler | No | `false` |
+| `BUTLER_CREDENTIALS` | Butler API key | No | `""` |
+| `ITCH_USER_SLASH_GAME` | Itch target as `user/game` | No | `""` |
+| `RELEASE_KEYSTORE` | Base64/ASCII-armored keystore (for Android signing). Pass encrypted content; decrypted with `KEYSTORE_PASSPHRASE` | No | `""` |
+| `KEYSTORE_PASSPHRASE` | Passphrase used to decrypt `RELEASE_KEYSTORE` | No | `""` |
+| `KEY_ALIAS` | Android signing key alias | No | `""` |
+| `KEY_PASSWORD` | Android signing key password | No | `""` |
 
-Also includes some neesh inputs (like for using preview builds), You could check for all the inputs in the action.yml file.
-
-For a reference workflow, check the workflows of this [repo](https://github.com/mlm-games/just-keep-chasing).
+Tip: For Android exports, the action sets/updates the Godot editor settings to use the installed JDK and Android SDK/NDK.
 
 ## Outputs
 
 | Output | Description |
 |--------|-------------|
-| `build` | Path to the build output directory |
+| `build` | Absolute path to the build output directory |
+| `version_name` | Version name parsed from export presets |
+| `version_code` | Version code parsed from export presets |
 
-## Prerequisites
+## Requirements
 
-1. Your Godot project must have export presets configured
-2. The export preset names must match what you specify in the action
-3. Your project should be Godot 4.x compatible 
+- Godot 4.x project with export presets configured
+- Export preset names must match exactly
+- For Android, a preset like “Android arm64” (or any preset name containing “Android”)
 
-## Export Preset Configuration
+## Common issues
 
-1. Open your project in Godot
-2. Go to Project > Export
-3. Add presets for your target platforms
-4. Make sure the preset names match what you specify in the action
-
-## Common Issues
-
-### Export Templates Not Found
-
-This usually means there's a mismatch between your project's Godot version and the export templates. Make sure:
-- Your project is using Godot 4.x
-- The `GODOT_VER` matches your project version (if specified)
-
-### Export Preset Not Found
-
-This happens when the preset name in your workflow doesn't match the ones in your project. To fix:
-1. Open your project in Godot
-2. Check the exact names of your export presets
-3. Use those exact names in your workflow
-
-### Export directory doesnt exist
-
-Use the input `EXPORT_DIR` to set your custom export directory
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+- Export Templates not found: ensure your project’s Godot version matches the templates. If auto-detection fails or rate-limit hits, set `GODOT_VER` explicitly.
+- Android export failures: check that the preset exists; accept Android SDK licenses; ensure version codes/names are present in `export_presets.cfg`.
+- Web/HTML5 export: produced directory is zipped automatically before butler upload.
 
 ## License
 
-This project is licensed under the GPL 3.0 License - see the LICENSE file for details.
+GPL-3.0-only. See LICENSE. (Will change to MIT on request, but it shouldn't matter here)
 
 ## Credits
 
-- [yeslayla](https://github.com/yeslayla) for the initial reference yml
+- Thanks to the Godot team and community for official binaries and templates.
+- Inspired by workflows from various open-source Godot projects.
+- [yeslayla](https://github.com/yeslayla) -> special mention for the initial reference yml
