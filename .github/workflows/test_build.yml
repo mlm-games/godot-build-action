@@ -33,7 +33,7 @@ jobs:
           EXPORT_DIR: builds
           VERBOSE_IMPORT: "true"
 
-      - name: Debug: list Godot dirs
+      - name: Debug list Godot dirs
         if: always()
         run: |
           set -x
