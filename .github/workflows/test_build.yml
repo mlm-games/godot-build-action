@@ -23,7 +23,7 @@ jobs:
 
       - name: Build with action
         id: build
-        uses: mlm-games/godot-build-action@v1
+        uses: mlm-games/godot-build-action@main
         with:
           EXPORT_PRESET_NAME: ${{ matrix.platform }}
           PROJECT_DIR: test_build_game
