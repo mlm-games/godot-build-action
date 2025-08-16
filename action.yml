@@ -243,19 +243,21 @@ runs:
       if: contains(inputs.EXPORT_PRESET_NAME, 'Android')
       uses: android-actions/setup-android@v3
 
-    - name: Configure Android SDK (accept licenses, install components)
+    - name: Configure Android SDK
       if: contains(inputs.EXPORT_PRESET_NAME, 'Android')
       shell: bash
       run: |
-        set -Eeuo pipefail
-        yes | sdkmanager --licenses >/dev/null
-        yes | sdkmanager \
+        # sdkmanager can close stdin early; avoid pipefail on 'yes' SIGPIPE and silence its stderr
+        set +o pipefail
+        yes 2>/dev/null | sdkmanager --licenses >/dev/null
+        yes 2>/dev/null | sdkmanager \
           "platform-tools" \
           "build-tools;34.0.0" \
           "platforms;android-34" \
           "cmdline-tools;latest" \
           "cmake;3.10.2.4988404" \
           "ndk;23.2.8568313"
+        set -o pipefail
 
     - name: Import Godot project
       shell: bash
