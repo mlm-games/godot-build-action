@@ -7,7 +7,7 @@ inputs:
     description: 'Name of the preset in export_presets.cfg to use (e.g., "Windows Desktop", "Linux/X11", "macOS", "Android arm64")'
     required: true
   GODOT_VER:
-    description: 'Godot version to use (e.g., 4.2.2-stable). If empty, latest stable 4.x is used.'
+    description: 'Godot version to use (e.g., 4.5-stable). If empty, latest stable 4.x is used.'
     required: false
     default: ''
   PROJECT_DIR:
@@ -70,6 +70,18 @@ inputs:
     description: 'Enable verbose output during import'
     required: false
     default: 'true'
+  ANDROID_SDK_API_LEVEL:
+    description: 'Android platform API level to install (e.g., 35)'
+    required: false
+    default: '35'
+  ANDROID_BUILD_TOOLS:
+    description: 'Android Build-Tools version to install (e.g., 35.0.0)'
+    required: false
+    default: '35.0.0'
+  ANDROID_NDK_VERSION:
+    description: 'Android NDK version to install (r28b recommended for Godot 4.5)'
+    required: false
+    default: '28.1.13356709'
 
 outputs:
   build:
@@ -189,7 +201,7 @@ runs:
             URL="https://github.com/godotengine/godot/releases/download/${VER}/${BASE}.zip"
           fi
           echo "Downloading Godot from: $URL"
-          wget -q "$URL" -O ~/godot-binary/godot.zip
+          wget -q "$URL" -o /dev/null -O ~/godot-binary/godot.zip
           unzip -q ~/godot-binary/godot.zip -d ~/godot-binary
           chmod +x ~/godot-binary/${BASE}
           mv ~/godot-binary/${BASE} ~/godot-binary/godot
@@ -224,7 +236,7 @@ runs:
 
         TEMPLATE_VERSION="$(echo "$VER" | sed 's/-/./g')"
         if [ -d ~/.local/share/godot/export_templates/templates ]; then
-          # Move into versioned folder expected by Godot, e.g., 4.2.2.stable
+          # Move into versioned folder expected by Godot, e.g., 4.5.stable
           rm -rf ~/.local/share/godot/export_templates/"$TEMPLATE_VERSION" || true
           mv ~/.local/share/godot/export_templates/templates ~/.local/share/godot/export_templates/"$TEMPLATE_VERSION"
         fi
@@ -252,11 +264,11 @@ runs:
         yes 2>/dev/null | sdkmanager --licenses >/dev/null
         yes 2>/dev/null | sdkmanager \
           "platform-tools" \
-          "build-tools;34.0.0" \
-          "platforms;android-34" \
+          "build-tools;${{ inputs.ANDROID_BUILD_TOOLS }}" \
+          "platforms;android-${{ inputs.ANDROID_SDK_API_LEVEL }}" \
           "cmdline-tools;latest" \
           "cmake;3.10.2.4988404" \
-          "ndk;23.2.8568313"
+          "ndk;${{ inputs.ANDROID_NDK_VERSION }}"
         set -o pipefail
 
     - name: Import Godot project
