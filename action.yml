@@ -389,6 +389,14 @@ runs:
         echo "Exported files (first 20):"
         find "${{ inputs.EXPORT_DIR }}" -type f | head -20 || true
 
+        # If Web export, zip the directory
+        if [[ "${{ inputs.EXPORT_PRESET_NAME }}" == *"Web"* || "${{ inputs.EXPORT_PRESET_NAME }}" == *"HTML"* ]]; then
+          WEB_DIR="${{ inputs.EXPORT_DIR }}/web"
+            if [ -d "$WEB_DIR" ] && [ -n "$(ls -A "$WEB_DIR" 2>/dev/null || true)" ]; then
+              (cd "$WEB_DIR" && zip -qr ../web.zip .)
+            fi
+        fi
+
     - name: Upload to itch.io (butler)
       if: inputs.BUTLER_UPLOAD == 'true' && inputs.BUTLER_CREDENTIALS != '' && inputs.ITCH_USER_SLASH_GAME != ''
       shell: bash
@@ -402,15 +410,10 @@ runs:
         export BUTLER_API_KEY="${{ inputs.BUTLER_CREDENTIALS }}"
         cd "${GITHUB_WORKSPACE}/${{ inputs.PROJECT_DIR }}"
 
-        # If Web export, zip the directory
         if [[ "${{ inputs.EXPORT_PRESET_NAME }}" == *"Web"* || "${{ inputs.EXPORT_PRESET_NAME }}" == *"HTML"* ]]; then
-          WEB_DIR="${{ inputs.EXPORT_DIR }}/web"
-          if [ -d "$WEB_DIR" ] && [ -n "$(ls -A "$WEB_DIR" 2>/dev/null || true)" ]; then
-            (cd "$WEB_DIR" && zip -qr ../web.zip .)
             ./butler push "${{ inputs.EXPORT_DIR }}/web.zip" "${{ inputs.ITCH_USER_SLASH_GAME }}:html5" ${VERSION_ARG:-}
             echo "Uploaded web.zip to itch.io (html5)"
             exit 0
-          fi
         fi
 
         # Else try to push individual files (common extensions)
