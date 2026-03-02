@@ -15,7 +15,7 @@ jobs:
         platform: ["Windows Desktop", "Linux/X11", "macOS", "Android arm64"]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Clone test game
         run: |
