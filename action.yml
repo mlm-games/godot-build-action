@@ -309,9 +309,9 @@ runs:
               || echo "export/android/android_sdk_path = \"$ANDROID_SDK_ROOT\"" >> "$GODOT_CFG"
           fi
           if [ -n "${BLENDER_PATH:-}" ]; then
-            grep -q '^filesystem/import/blender/blender3_path' "$GODOT_CFG" \
-              && sed -i "s|^filesystem/import/blender/blender3_path = .*|filesystem/import/blender/blender3_path = \"$BLENDER_PATH\"|" "$GODOT_CFG" \
-              || echo "filesystem/import/blender/blender3_path = \"$BLENDER_PATH\"" >> "$GODOT_CFG"
+            grep -q '^filesystem/import/blender/blender_path' "$GODOT_CFG" \
+              && sed -i "s|^filesystem/import/blender/blender_path = .*|filesystem/import/blender/blender_path = \"$BLENDER_PATH\"|" "$GODOT_CFG" \
+              || echo "filesystem/import/blender/blender_path = \"$BLENDER_PATH\"" >> "$GODOT_CFG"
           fi
         fi
 
