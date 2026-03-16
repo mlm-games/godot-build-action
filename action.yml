@@ -145,11 +145,17 @@ runs:
         set -Eeuo pipefail
         sudo apt-get update
         sudo apt-get install -y \
+          libx11-6 \
+          libxkbcommon0 \
+          libgl1 \
+          libglx0 \
+          libxi6 \
+          libxxf86vm1 \
+          libxrender1 \
+          libxext6 \
           libxcursor1 \
           libxinerama1 \
           libxrandr2 \
-          libxi6 \
-          libgl1 \
           libglu1-mesa \
           xvfb \
           unzip \
