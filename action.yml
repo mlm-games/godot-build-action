@@ -259,7 +259,7 @@ runs:
 
     - name: Setup Android SDK
       if: contains(inputs.EXPORT_PRESET_NAME, 'Android')
-      uses: android-actions/setup-android@v3
+      uses: android-actions/setup-android@v4
 
     - name: Configure Android SDK
       if: contains(inputs.EXPORT_PRESET_NAME, 'Android')
